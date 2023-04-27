@@ -20,14 +20,50 @@ Run the following command from your project root:
 composer require visuellverstehen/statamic-pixxio-flysystem
 ```
 
-Publish configurations:
+Add your Pixxio credentials to config/filesystems.php
+
+``` php
+'disks' => [
+    'pixxio' => [
+        'driver' => 'pixxio',
+        'api_key' => env('PIXXIO_API_KEY'),
+        'refresh_token' => env('PIXXIO_REFRESH_TOKEN'),
+        'endpoint' => env('PIXXIO_ENDPOINT'),
+    ],
+],
+```
+
+Run migrations:
+
+``` bash
+php artisan migrate
+```
+
+Run synchronization script:
+
+``` bash
+php artisan pixxio:sync
+```
+
+In order to keep the database updated schedule a task that runs synchronization script regularly.
+
+## Configurations
 
 ``` bash
 php artisan vendor:publish --provider="VV\PixxioFlysystem\ServiceProvider" --tag="flysystem-pixxio-config"
 ```
 
+Exclude certain directories in config/flysystem-pixxio.php
+
+``` php
+'exclude' => [
+        'directories' => [
+            '/home',
+        ],
+    ],
+```
+
 ## How to Use
 
-- Choose 
-todo:
+- Simply create an Asset-Container with pixxio as your driver.
 
