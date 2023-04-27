@@ -1,0 +1,33 @@
+{
+    "name": "visuellverstehen/statamic-pixxio-flysystem",
+    "description": "A Flysystem Adapter for the Pixxio API",
+    "keywords": [ "statamic", "addon", "flysystem", "filesystem", "pixxio", "assets", "asset-container", "v3", "v4" ],
+    "type": "statamic-addon",
+    "autoload": {
+        "psr-4": {
+            "VV\\PixxioFlysystem\\": "src"
+        }
+    },
+    "authors": [
+        {
+            "name": "visuellverstehen"
+        }
+    ],
+    "support": {
+        "email": "hello@visuellverstehen.de"
+    },
+    "extra": {
+        "statamic": {
+            "name": "Statamic Pixxio Flysystem",
+            "description": "A Flysystem Adapter for the Pixxio API"
+        },
+        "laravel": {
+            "providers": [
+                "VV\\PixxioFlysystem\\ServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "statamic/cms": "^3.4 || ^4.0 || ^4.0@alpha || ^4.0@beta || ^4.0@RC"
+    }
+}
