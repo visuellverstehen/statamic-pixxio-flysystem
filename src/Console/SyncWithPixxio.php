@@ -82,7 +82,8 @@ class SyncWithPixxio extends Command
                         'absolute_path' => $file['imagePath'],
                         'filesize' => $file['fileSize'],
                         'last_modified' => $file['uploadDate'] ?? null,
-                        'alternative_text' => 'Juuuhuuu alt text!',
+                        'alternative_text' => $file['dynamicMetadata']['Alternativetext'] ?? null,
+                        'copyright' => $file['dynamicMetadata']['CopyrightNotice'] ?? null,
                         'updated_at' => now(),
                     ]
                 );

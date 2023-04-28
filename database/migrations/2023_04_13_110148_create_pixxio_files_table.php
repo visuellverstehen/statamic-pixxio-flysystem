@@ -15,7 +15,8 @@ return new class() extends Migration
             $table->integer('filesize')->nullable();
             $table->string('visibility')->default('public'); // Can it be null?
             $table->timestamp('last_modified')->nullable();
-            $table->string('alternative_text')->nullable();
+            $table->text('alternative_text')->nullable();
+            $table->text('copyright')->nullable();
             $table->timestamps();
         });
     }

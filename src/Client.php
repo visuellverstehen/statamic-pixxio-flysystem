@@ -32,7 +32,7 @@ class Client
      */
     public function fileExists(string $path): bool
     {
-        return ! empty(self::findFileByPath($path));
+        return !empty(self::findFileByPath($path));
     }
 
     /*
@@ -76,7 +76,7 @@ class Client
 
         if ($rootDirectory !== 'root') {
             // Check if root directory exists.
-            if (! self::directoryExists($rootDirectory)) {
+            if (!self::directoryExists($rootDirectory)) {
                 // Do not try to create directory.
                 return false;
             }
@@ -102,7 +102,7 @@ class Client
     public function deleteFile($path): void
     {
         // todo: why is this not working?
-        if (! $file = PixxioFile::find($path)) {
+        if (!$file = PixxioFile::find($path)) {
             throw UnableToDeleteFile::atLocation($path, 'File could not be found in database');
         }
 
@@ -132,10 +132,6 @@ class Client
         }
     }
 
-    /*
-     * Docs:
-     * https://bilder.fh-dortmund.de/cgi-bin/api/pixxio-api.pl/documentation/files/post
-     */
     public function upload($path, $contents): bool
     {
         $fileContents = stream_get_contents($contents);
@@ -210,7 +206,7 @@ class Client
 
     public function readStream(string $path)
     {
-        if (! $file = PixxioFile::find($path)) {
+        if (!$file = PixxioFile::find($path)) {
             // todo: throw exception. Could not find file.
         }
 
@@ -224,14 +220,29 @@ class Client
         ]));
     }
 
-    public function mimeType(string $path)
+    public function getMetaData($path): string
+    {
+        $path = str_replace(['.meta/', '.yaml'], '', $path);
+
+        if (!$file = PixxioFile::find($path)) {
+            return '';
+        }
+
+        return <<<EOD
+            data:
+              alt: "{$file->alternative_text}"
+              copyright: "{$file->copyright}"
+            EOD;
+    }
+
+    public function mimeType(string $path): string
     {
         return MimeType::fromFilename($path);
     }
 
     public function fileSize(string $path): int
     {
-        if (! $file = self::findFileByPath($path)) {
+        if (!$file = self::findFileByPath($path)) {
             return 0;
         }
 
@@ -240,7 +251,7 @@ class Client
 
     public function lastModified(string $path)// timestamp
     {
-        if (! $file = self::findFileByPath($path)) {
+        if (!$file = self::findFileByPath($path)) {
             return null;
         }
 
@@ -281,7 +292,7 @@ class Client
                         'originalFilename', 'formatType',
                         'fileSize', 'fileType', 'description',
                         'uploadDate', 'createDate', 'imageHeight',
-                        'imageWidth', 'subject',
+                        'imageWidth', 'subject', 'dynamicMetadata',
                     ],
                 ]),
             ]);
@@ -322,12 +333,12 @@ class Client
             ]), 'application/json')
             ->post("{$this->endpoint}/json/accessToken");
 
-        if (! $response->successful()) {
+        if (!$response->successful()) {
             // todo: throw custom exception.
             return null;
         }
 
-        if (! array_key_exists('accessToken', $response->json())) {
+        if (!array_key_exists('accessToken', $response->json())) {
             return null;
         }
 

@@ -6,21 +6,24 @@
 
 ## Features
 - Provide a Flysystem Adapter for Pixxio
+- Exclude specific directories from the asset-container.
 
+---
 ## Licensing
 
 Pixxio Flysystem is a commercial addon - you **must purchase a license** via the [Statamic Marketplace](https://statamic.com/addons/visuellverstehen/pixxio-flysystem) to use it in a production environment.
 
+---
 
 ## How to Install
 
-Run the following command from your project root:
+### Run the following command from your project root:
 
 ``` bash
 composer require visuellverstehen/statamic-pixxio-flysystem
 ```
 
-Add your Pixxio credentials to config/filesystems.php
+### Add your Pixxio credentials to config/filesystems.php
 
 ``` php
 'disks' => [
@@ -33,13 +36,17 @@ Add your Pixxio credentials to config/filesystems.php
 ],
 ```
 
-Run migrations:
+### 2. Run migrations
 
 ``` bash
 php artisan migrate
 ```
 
-Run synchronization script:
+### 3. Edit blueprint
+
+Add `alt` and `copyright` fields to the asset-container blueprint.
+
+### 4. Run synchronization script:
 
 ``` bash
 php artisan pixxio:sync
@@ -47,6 +54,7 @@ php artisan pixxio:sync
 
 In order to keep the database updated schedule a task that runs synchronization script regularly.
 
+---
 ## Configurations
 
 ``` bash
@@ -63,6 +71,7 @@ Exclude certain directories in config/flysystem-pixxio.php
     ],
 ```
 
+---
 ## How to Use
 
 - Simply create an Asset-Container with pixxio as your driver.

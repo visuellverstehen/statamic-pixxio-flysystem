@@ -31,12 +31,12 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        return (bool) PixxioFile::find($path);
+        return (bool)PixxioFile::find($path);
     }
 
     public function directoryExists(string $path): bool
     {
-        return (bool) PixxioDirectory::find($path);
+        return (bool)PixxioDirectory::find($path);
     }
 
     public function write(string $path, string $contents, Config $config): void
@@ -55,14 +55,13 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function read(string $path): string
     {
-        // todo: read metadata
-        if (Str::contains($path, '.meta')) {
-            return '';
-        }
-
         $path = self::prefix($path);
 
-        if (! $file = PixxioFile::find($path)) {
+        if (Str::contains($path, '.meta')) {
+            return $this->client->getMetaData($path);
+        }
+
+        if (!$file = PixxioFile::find($path)) {
             // todo: handle
         }
 
@@ -128,7 +127,7 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        if (! $file = PixxioFile::find($path)) {
+        if (!$file = PixxioFile::find($path)) {
             // todo: throw exception. Could not find file.
         }
 
@@ -139,7 +138,7 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        if (! $file = PixxioFile::find($path)) {
+        if (!$file = PixxioFile::find($path)) {
             // todo: throw exception. Could not find file.
         }
 
