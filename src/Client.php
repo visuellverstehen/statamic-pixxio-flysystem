@@ -119,14 +119,17 @@ class Client
 
     public function deleteDirectory($path): void
     {
-        // todo: why is this not working?
+        $options = json_encode([
+            'destinationCategory' => $path,
+        ]);
+
+        $urlEncodedOptions = urlencode($options);
+
         $response = Http::withoutVerifying()
-            ->delete("{$this->endpoint}/categories", [
+            ->withHeaders([
                 'accessToken' => self::getAccessToken(),
-                'options' => json_encode([
-                    'destinationCategory' => $path,
-                ]),
-            ]);
+            ])
+            ->delete("{$this->endpoint}/categories/?options={$urlEncodedOptions}");
 
         if ($response->json()['success'] !== 'true') {
             throw new Exception($response->json()['message']);
