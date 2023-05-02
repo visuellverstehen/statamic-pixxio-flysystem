@@ -36,17 +36,17 @@ composer require visuellverstehen/statamic-pixxio-flysystem
 ],
 ```
 
-### 2. Run migrations
+### Run migrations
 
 ``` bash
 php artisan migrate
 ```
 
-### 3. Edit blueprint
+### Edit blueprint
 
 Add `alt` and `copyright` fields to the asset-container blueprint.
 
-### 4. Run synchronization script:
+### Run synchronization script:
 
 ``` bash
 php artisan pixxio:sync

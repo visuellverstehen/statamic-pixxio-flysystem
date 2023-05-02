@@ -11,6 +11,8 @@ use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
 use League\Flysystem\UnableToCreateDirectory;
+use League\Flysystem\UnableToDeleteDirectory;
+use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
 use League\Flysystem\UnableToSetVisibility;
 use League\Flysystem\UnableToWriteFile;
@@ -41,7 +43,13 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function write(string $path, string $contents, Config $config): void
     {
-        // todo: update meta data.
+        $path = self::prefix($path);
+
+        try {
+            $this->client->setMetaData($path, $contents);
+        } catch (Exception $exception) {
+            throw UnableToWriteFile::atLocation($path, $exception->getMessage());
+        }
     }
 
     public function writeStream(string $path, $contents, Config $config): void
@@ -58,11 +66,15 @@ class PixxioAdapter implements FilesystemAdapter
         $path = self::prefix($path);
 
         if (Str::contains($path, '.meta')) {
-            return $this->client->getMetaData($path);
+            try {
+                return $this->client->getMetaData($path);
+            } catch (Exception $exception) {
+                throw new Exception($exception->getMessage());
+            }
         }
 
         if (!$file = PixxioFile::find($path)) {
-            // todo: handle
+            UnableToReadFile::fromLocation($path, "Could not find file '{$path}'");
         }
 
         return $this->client->read($file->absolute_path);
@@ -84,19 +96,29 @@ class PixxioAdapter implements FilesystemAdapter
         $path = self::prefix($path);
 
         if (PixxioDirectory::find($path)) {
-            $this->client->deleteDirectory($path);
-
-            return;
+            try {
+                $this->client->deleteDirectory($path);
+            } catch (Exception $exception) {
+                throw UnableToDeleteDirectory::atLocation($path, $exception->getMessage());
+            }
         }
 
         if (PixxioFile::find($path)) {
-            $this->client->deleteFile($path);
+            try {
+                $this->client->deleteFile($path);
+            } catch (Exception $exception) {
+                throw UnableToDeleteFile::atLocation($path, $exception->getMessage());
+            }
         }
     }
 
     public function deleteDirectory(string $path): void
     {
-        $this->client->deleteDirectory($path);
+        try {
+            $this->client->deleteDirectory($path);
+        } catch (Exception $exception) {
+            throw UnableToDeleteDirectory::atLocation($path, $exception->getMessage());
+        }
     }
 
     public function createDirectory(string $path, Config $config): void
@@ -115,6 +137,7 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function visibility(string $path): FileAttributes
     {
+        // todo: are all files public?
         return new FileAttributes($path, null, 'public');
     }
 
@@ -127,22 +150,14 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        if (!$file = PixxioFile::find($path)) {
-            // todo: throw exception. Could not find file.
-        }
-
-        return new FileAttributes($path, null, null, $file->last_modified);
+        return new FileAttributes($path, null, null, PixxioFile::find($path)->last_modified ?? now()->timestamp);
     }
 
     public function fileSize(string $path): FileAttributes
     {
         $path = self::prefix($path);
 
-        if (!$file = PixxioFile::find($path)) {
-            // todo: throw exception. Could not find file.
-        }
-
-        return new FileAttributes($path, $file->filesize);
+        return new FileAttributes($path, PixxioFile::find($path)->filesize ?? 0);
     }
 
     public function listContents(string $path, bool $deep): iterable
@@ -176,7 +191,6 @@ class PixxioAdapter implements FilesystemAdapter
     {
         yield from PixxioDirectory::all();
 
-        // Does it make sense to call all files at once? right now it is about 10.000 files/entries.
         yield from PixxioFile::all();
     }
 

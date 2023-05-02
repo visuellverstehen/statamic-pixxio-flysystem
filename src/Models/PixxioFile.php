@@ -35,7 +35,8 @@ class PixxioFile extends Model
         'relative_path', 'absolute_path',
         'filesize', 'mimetype',
         'visibility', 'last_modified',
-        'alternative_text', 'updated_at',
+        'alternative_text', 'copyright',
+        'updated_at',
     ];
 
     public function scopeUpdatedAtOlderThan(Builder $query, int $interval): void

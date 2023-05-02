@@ -3,15 +3,14 @@
 namespace VV\PixxioFlysystem;
 
 use Exception;
-use GuzzleHttp\Psr7\MimeType;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use League\Flysystem\UnableToDeleteDirectory;
 use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
+use Statamic\Facades\YAML;
+use VV\PixxioFlysystem\Exceptions\FileException;
 use VV\PixxioFlysystem\Models\PixxioFile;
 
 class Client
@@ -42,7 +41,7 @@ class Client
     {
         try {
             $response = Http::withoutVerifying()
-                ->get("{$this->endpoint}/json/categories/exists", [
+                ->get("{$this->endpoint}/categories/exists", [
                     'accessToken' => self::getAccessToken(),
                     'options' => json_encode([
                         'destinationCategory' => $path,
@@ -60,7 +59,7 @@ class Client
     /*
      * https://bilder.fh-dortmund.de/cgi-bin/api/pixxio-api.pl/documentation/categories
      */
-    public function createDirectory($path): bool
+    public function createDirectory($path): void
     {
         // prepare path for request.
         $path = trim($path, '/');
@@ -78,7 +77,7 @@ class Client
             // Check if root directory exists.
             if (!self::directoryExists($rootDirectory)) {
                 // Do not try to create directory.
-                return false;
+                throw new Exception("Root directory '{$rootDirectory}' does not exist.");
             }
         }
 
@@ -88,7 +87,7 @@ class Client
             : Str::substr($path, 0, $length);
 
         $response = Http::withoutVerifying()
-            ->post("{$this->endpoint}/json/categories", [
+            ->post("{$this->endpoint}/categories", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'categoryName' => $directoryName,
@@ -96,7 +95,9 @@ class Client
                 ]),
             ]);
 
-        return $response->json()['success'] === 'true';
+        if ($response->json()['success'] !== 'true') {
+            throw new Exception($response->json()['message']);
+        }
     }
 
     public function deleteFile($path): void
@@ -107,7 +108,7 @@ class Client
         }
 
         $response = Http::withoutVerifying()
-            ->delete("{$this->endpoint}/json/files/{$file->id}", [
+            ->delete("{$this->endpoint}/files/{$file->id}", [
                 'accessToken' => self::getAccessToken(),
             ]);
 
@@ -120,7 +121,7 @@ class Client
     {
         // todo: why is this not working?
         $response = Http::withoutVerifying()
-            ->delete("{$this->endpoint}/json/categories", [
+            ->delete("{$this->endpoint}/categories", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'destinationCategory' => $path,
@@ -128,7 +129,7 @@ class Client
             ]);
 
         if ($response->json()['success'] !== 'true') {
-            throw UnableToDeleteDirectory::atLocation($path, $response->json()['message']);
+            throw new Exception($response->json()['message']);
         }
     }
 
@@ -146,12 +147,11 @@ class Client
         // To receive the fileId and therefore convert the file immediatly, you need to set forceConversion = "true".
         $response = Http::withoutVerifying()
             ->attach('file', $fileContents, $fileName)
-            ->post("{$this->endpoint}/json/files", [
+            ->post("{$this->endpoint}/files", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'category' => $directory,
                     'forceConversion' => 'true',
-                    'description' => 'uploaded by statamic',
                 ]),
             ]);
 
@@ -163,7 +163,7 @@ class Client
         $fileId = $response->json()['fileId'];
 
         $fileResponse = Http::withoutVerifying()
-            ->get("{$this->endpoint}/json/files/{$fileId}", [
+            ->get("{$this->endpoint}/files/{$fileId}", [
                 'accessToken' => self::getAccessToken(),
             ]);
 
@@ -207,11 +207,13 @@ class Client
     public function readStream(string $path)
     {
         if (!$file = PixxioFile::find($path)) {
+            throw FileException::notFound($path);
             // todo: throw exception. Could not find file.
         }
 
         error_clear_last();
 
+        // todo: make verification optional.
         return fopen($file->absolute_path, 'rb', false, stream_context_create([
             'ssl' => [
                 'verify_peer' => false,
@@ -225,7 +227,7 @@ class Client
         $path = str_replace(['.meta/', '.yaml'], '', $path);
 
         if (!$file = PixxioFile::find($path)) {
-            return '';
+            throw FileException::notFound($path);
         }
 
         return <<<EOD
@@ -235,36 +237,46 @@ class Client
             EOD;
     }
 
-    public function mimeType(string $path): string
+    public function setMetaData($path, string $data): void
     {
-        return MimeType::fromFilename($path);
-    }
+        $path = str_replace(['.meta/', '.yaml'], '', $path);
 
-    public function fileSize(string $path): int
-    {
-        if (!$file = self::findFileByPath($path)) {
-            return 0;
+        if (!$file = PixxioFile::find($path)) {
+            throw FileException::notFound($path);
         }
 
-        return $file['fileSize'] ?? 0;
-    }
+        $metaData = Yaml::parse($data)['data'] ?? [];
 
-    public function lastModified(string $path)// timestamp
-    {
-        if (!$file = self::findFileByPath($path)) {
-            return null;
+        if ($file->alternative_text === $metaData['alt'] ?? '' && $file->copyright === $metaData['copyright'] ?? '') {
+            return;
         }
 
-        return Carbon::createFromTimeString($file['uploadDate'])->timestamp;
+        $response = Http::withoutVerifying()
+            ->asForm()
+            ->put("{$this->endpoint}/files/{$file->pixxio_id}", [
+                'accessToken' => self::getAccessToken(),
+                'options' => json_encode([
+                    'dynamicMetadata' => [
+                        'Alternativetext' => $metaData['alt'] ?? '',
+                        'CopyrightNotice' => $metaData['copyright'] ?? '',
+                    ]
+                ])
+            ]);
+
+        if ($response->json()['success'] !== 'true') {
+            throw new Exception($response->json()['message']);
+        }
+
+        $file->update([
+            'alternative_text' => addslashes($metaData['alt']),
+            'copyright' => addslashes($metaData['copyright'])
+        ]);
     }
 
-    /*
-     * https://bilder.fh-dortmund.de/cgi-bin/api/pixxio-api.pl/documentation/categories/get
-     */
     public function listDirectory(): array
     {
         $response = Http::withoutVerifying()
-            ->get("{$this->endpoint}/json/categories", [
+            ->get("{$this->endpoint}/categories", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'type' => 'createEditCategories',
@@ -281,7 +293,7 @@ class Client
     public function listFiles(int $page): array
     {
         $response = Http::withoutVerifying()
-            ->get("{$this->endpoint}/json/files", [
+            ->get("{$this->endpoint}/files", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'pagination' => "500-{$page}",
@@ -331,7 +343,7 @@ class Client
                 'refreshToken' => $this->refreshToken,
                 'apiKey' => $this->apiKey,
             ]), 'application/json')
-            ->post("{$this->endpoint}/json/accessToken");
+            ->post("{$this->endpoint}/accessToken");
 
         if (!$response->successful()) {
             // todo: throw custom exception.
@@ -343,7 +355,7 @@ class Client
         }
 
         $accessToken = $response->json()['accessToken'];
-        // todo: check if 'fehleranfällig'.
+
         Cache::put('pixxio-access', Crypt::encryptString($accessToken), 300);
 
         return $accessToken;
@@ -359,7 +371,7 @@ class Client
 
         try {
             $response = Http::withoutVerifying()
-                ->get("{$this->endpoint}/json/files", [
+                ->get("{$this->endpoint}/files", [
                     'accessToken' => self::getAccessToken(),
                     'options' => json_encode([
                         'fileName' => trim($fileName, '/'),
