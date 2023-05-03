@@ -16,7 +16,6 @@ use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
 use League\Flysystem\UnableToSetVisibility;
 use League\Flysystem\UnableToWriteFile;
-use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use VV\PixxioFlysystem\Models\PixxioDirectory;
 use VV\PixxioFlysystem\Models\PixxioFile;
 
@@ -93,9 +92,6 @@ class PixxioAdapter implements FilesystemAdapter
         }
     }
 
-    /*
-     *
-     */
     public function delete(string $path): void
     {
         $path = self::prefix($path);
@@ -131,7 +127,7 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function setVisibility(string $path, string $visibility): void
     {
-        throw UnableToSetVisibility::atLocation($path, 'Adapter does not support visibility controls.');
+        throw UnableToSetVisibility::atLocation($path, 'Pixxio adapter does not support visibility controls.');
     }
 
     public function visibility(string $path): FileAttributes
@@ -178,12 +174,12 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function move(string $source, string $destination, Config $config): void
     {
-        // todo:
+        throw new Exception('Pixxio adapter does not support moving files or folders.');
     }
 
     public function copy(string $source, string $destination, Config $config): void
     {
-        // todo:
+        throw new Exception('Pixxio adapter does not support copying files or folders.');
     }
 
     private function iterateFolderContents(string $path = '', bool $deep = false): Generator

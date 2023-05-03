@@ -78,6 +78,10 @@ class Client
         if ($response->json()['success'] !== 'true') {
             throw new Exception($response->json()['message']);
         }
+
+        PixxioDirectory::create([
+           'relative_path' => $path,
+        ]);
     }
 
     public function deleteFile($path): void
@@ -315,8 +319,6 @@ class Client
 
     /*
      * Access Tokens are valid for 30 minutes. But right now we only store the current token for 5 minutes and make a new request.
-     *
-     * todo: what if we have an invalid accessToken?
      */
     private function getAccessToken(): ?string
     {
