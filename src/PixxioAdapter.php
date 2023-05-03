@@ -88,7 +88,7 @@ class PixxioAdapter implements FilesystemAdapter
             $path = self::prefix($path);
 
             return $this->client->readStream($path);
-        } catch (BadRequestException $exception) {
+        } catch (Exception $exception) {
             throw UnableToReadFile::fromLocation($path, $exception->getMessage(), $exception);
         }
     }

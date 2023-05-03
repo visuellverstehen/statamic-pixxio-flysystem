@@ -4,6 +4,7 @@ namespace VV\PixxioFlysystem;
 
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Filesystem;
 use Statamic\Providers\AddonServiceProvider;
@@ -19,10 +20,11 @@ class ServiceProvider extends AddonServiceProvider
             ->bootAddonConfig()
             ->bootAddonCommands()
             ->bootAddonMigrations()
+            ->bootMacros()
             ->bootAddonPixxioDriver();
     }
 
-    public function bootAddonConfig()
+    public function bootAddonConfig(): self
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'statamic.flysystem-pixxio');
 
@@ -33,7 +35,7 @@ class ServiceProvider extends AddonServiceProvider
         return $this;
     }
 
-    public function bootAddonPixxioDriver()
+    public function bootAddonPixxioDriver(): self
     {
         Storage::extend('pixxio', function (Application $app, array $config) {
             $adapter = new PixxioAdapter(new Client());
@@ -48,20 +50,35 @@ class ServiceProvider extends AddonServiceProvider
         return $this;
     }
 
-    public function bootAddonMigrations()
+    public function bootAddonMigrations(): self
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
         return $this;
     }
 
-    public function bootAddonCommands()
+    public function bootAddonCommands(): self
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
                 SyncWithPixxio::class,
             ]);
         }
+
+        return $this;
+    }
+
+    public function bootMacros(): self
+    {
+        Http::macro('pixxio', function () {
+            $endpoint = config('filesystems.disks.pixxio.endpoint', '');
+
+            if (config('statamic.flysystem-pixxio.verify_ssl_certificate', true)) {
+                return Http::baseUrl($endpoint);
+            }
+
+            return Http::withoutVerifying()->baseUrl($endpoint);
+        });
 
         return $this;
     }

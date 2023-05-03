@@ -19,12 +19,14 @@ class Client
     protected string $refreshToken;
     protected string $apiKey;
     protected string $endpoint;
+    protected bool $verifySSLCertificate;
 
     public function __construct()
     {
         $this->apiKey = config('filesystems.disks.pixxio.api_key');
         $this->refreshToken = config('filesystems.disks.pixxio.refresh_token');
         $this->endpoint = config('filesystems.disks.pixxio.endpoint');
+        $this->verifySSLCertificate = config('statamic.flysystem-pixxio.verify_ssl_certificate', true);
     }
 
     public function fileExists(string $path): bool
@@ -64,7 +66,7 @@ class Client
             ? Str::substr($path, $pos + 1, $length)
             : Str::substr($path, 0, $length);
 
-        $response = Http::withoutVerifying()
+        $response = Http::pixxio()
             ->post("{$this->endpoint}/categories", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
@@ -84,7 +86,7 @@ class Client
             throw UnableToDeleteFile::atLocation($path, 'File could not be found in database');
         }
 
-        $response = Http::withoutVerifying()
+        $response = Http::pixxio()
             ->withHeaders([
                 'accessToken' => self::getAccessToken(),
             ])
@@ -99,7 +101,7 @@ class Client
 
     public function deleteDirectory($path): void
     {
-        if(!$directory = PixxioDirectory::find($path)) {
+        if (!$directory = PixxioDirectory::find($path)) {
             throw new Exception("Could not find directory {$path}");
         }
 
@@ -109,7 +111,7 @@ class Client
 
         $urlEncodedOptions = urlencode($options);
 
-        $response = Http::withoutVerifying()
+        $response = Http::pixxio()
             ->withHeaders([
                 'accessToken' => self::getAccessToken(),
             ])
@@ -124,7 +126,12 @@ class Client
 
     public function upload($path, $contents): bool
     {
-        $fileContents = stream_get_contents($contents);
+        error_clear_last();
+        $fileContents = @stream_get_contents($contents);
+
+        if ($fileContents === false) {
+            throw UnableToReadFile::fromLocation($path, error_get_last()['message'] ?? '');
+        }
 
         $lastSlash = strrpos($path, '/');
         $strLength = strlen($path);
@@ -132,9 +139,7 @@ class Client
         $directory = substr($path, 0, $lastSlash);
         $fileName = trim(substr($path, $lastSlash, $strLength), '/');
 
-        // The file upload was successful. You find the file in your pixxio-system, when the conversion is finished.
-        // To receive the fileId and therefore convert the file immediatly, you need to set forceConversion = "true".
-        $response = Http::withoutVerifying()
+        $response = Http::pixxio()
             ->attach('file', $fileContents, $fileName)
             ->post("{$this->endpoint}/files", [
                 'accessToken' => self::getAccessToken(),
@@ -151,7 +156,7 @@ class Client
         // add new file to database
         $fileId = $response->json()['fileId'];
 
-        $fileResponse = Http::withoutVerifying()
+        $fileResponse = Http::pixxio()
             ->get("{$this->endpoint}/files/{$fileId}", [
                 'accessToken' => self::getAccessToken(),
             ]);
@@ -178,12 +183,7 @@ class Client
         $contents = @file_get_contents(
             $path,
             false,
-            stream_context_create([
-                'ssl' => [
-                    'verify_peer' => false,
-                    'verify_peer_name' => false,
-                ],
-            ])
+            self::streamingContext(),
         );
 
         if ($contents === false) {
@@ -200,14 +200,13 @@ class Client
         }
 
         error_clear_last();
+        $contents = @fopen($file->absolute_path, 'rb', false, self::streamingContext());
 
-        // todo: make verification optional.
-        return fopen($file->absolute_path, 'rb', false, stream_context_create([
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-            ],
-        ]));
+        if ($contents === false) {
+            throw UnableToReadFile::fromLocation($path, error_get_last()['message'] ?? '');
+        }
+
+        return $contents;
     }
 
     public function getMetaData($path): string
@@ -239,9 +238,9 @@ class Client
             return;
         }
 
-        $response = Http::withoutVerifying()
+        $response = Http::pixxio()
             ->asForm()
-            ->put("{$this->endpoint}/files/{$file->pixxio_id}", [
+            ->put("/files/{$file->pixxio_id}", [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'dynamicMetadata' => [
@@ -263,8 +262,8 @@ class Client
 
     public function listDirectory(): array
     {
-        $response = Http::withoutVerifying()
-            ->get("{$this->endpoint}/categories", [
+        $response = Http::pixxio()
+            ->get('/categories', [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'type' => 'createEditCategories',
@@ -280,8 +279,8 @@ class Client
 
     public function listFiles(int $page): array
     {
-        $response = Http::withoutVerifying()
-            ->get("{$this->endpoint}/files", [
+        $response = Http::pixxio()
+            ->get('/files', [
                 'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'pagination' => "500-{$page}",
@@ -326,16 +325,15 @@ class Client
         }
 
         // Request token.
-        $response = Http::withoutVerifying()
+        $response = Http::pixxio()
             ->withBody(json_encode([
                 'refreshToken' => $this->refreshToken,
                 'apiKey' => $this->apiKey,
-            ]), 'application/json')
+            ]))
             ->post("{$this->endpoint}/accessToken");
 
         if (!$response->successful()) {
-            // todo: throw custom exception.
-            return null;
+            throw new Exception($response->json()['message']);
         }
 
         if (!array_key_exists('accessToken', $response->json())) {
@@ -349,36 +347,13 @@ class Client
         return $accessToken;
     }
 
-    private function findFileByPath(string $path): ?array
+    private function streamingContext()
     {
-        $length = strlen($path);
-        $pos = strripos($path, '/');
-
-        $directory = Str::substr($path, 0, $pos);
-        $fileName = Str::substr($path, $pos, $length);
-
-        try {
-            $response = Http::withoutVerifying()
-                ->get("{$this->endpoint}/files", [
-                    'accessToken' => self::getAccessToken(),
-                    'options' => json_encode([
-                        'fileName' => trim($fileName, '/'),
-                        'category' => $directory, // path to file??
-                        'pagination' => '1-1',
-                    ]),
-                ]);
-
-            if ($response->json()['success'] !== 'true') {
-                return null;
-            }
-
-            if (empty($response->json()['files'])) {
-                return null;
-            }
-
-            return $response->json()['files'][0];
-        } catch (Exception $e) {
-            return null;
-        }
+        return stream_context_create([
+            'ssl' => [
+                'verify_peer' => $this->verifySSLCertificate,
+                'verify_peer_name' => $this->verifySSLCertificate,
+            ],
+        ]);
     }
 }

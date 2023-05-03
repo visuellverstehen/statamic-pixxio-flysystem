@@ -8,4 +8,6 @@ return [
         ],
     ],
 
+    'verify_ssl_certificate' => false,
+
 ];
