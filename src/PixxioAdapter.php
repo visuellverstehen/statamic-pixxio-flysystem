@@ -33,12 +33,14 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        return (bool)PixxioFile::find($path);
+        return $this->client->fileExists($path);
     }
 
     public function directoryExists(string $path): bool
     {
-        return (bool)PixxioDirectory::find($path);
+        $path = self::prefix($path);
+
+        return $this->client->directoryExists($path);
     }
 
     public function write(string $path, string $contents, Config $config): void
@@ -91,17 +93,12 @@ class PixxioAdapter implements FilesystemAdapter
         }
     }
 
+    /*
+     *
+     */
     public function delete(string $path): void
     {
         $path = self::prefix($path);
-
-        if (PixxioDirectory::find($path)) {
-            try {
-                $this->client->deleteDirectory($path);
-            } catch (Exception $exception) {
-                throw UnableToDeleteDirectory::atLocation($path, $exception->getMessage());
-            }
-        }
 
         if (PixxioFile::find($path)) {
             try {
@@ -114,6 +111,8 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function deleteDirectory(string $path): void
     {
+        $path = self::prefix($path);
+
         try {
             $this->client->deleteDirectory($path);
         } catch (Exception $exception) {

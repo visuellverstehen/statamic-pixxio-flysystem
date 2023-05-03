@@ -11,6 +11,7 @@ use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
 use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Exceptions\FileException;
+use VV\PixxioFlysystem\Models\PixxioDirectory;
 use VV\PixxioFlysystem\Models\PixxioFile;
 
 class Client
@@ -26,39 +27,16 @@ class Client
         $this->endpoint = config('filesystems.disks.pixxio.endpoint');
     }
 
-    /*
-     * Docs: https://bilder.fh-dortmund.de/cgi-bin/api/pixxio-api.pl/documentation/files/get
-     */
     public function fileExists(string $path): bool
     {
-        return !empty(self::findFileByPath($path));
+        return (bool)PixxioFile::find($path);
     }
 
-    /*
-     * Docs: https://bilder.fh-dortmund.de/cgi-bin/api/pixxio-api.pl/documentation/categories/get
-     */
     public function directoryExists(string $path): bool
     {
-        try {
-            $response = Http::withoutVerifying()
-                ->get("{$this->endpoint}/categories/exists", [
-                    'accessToken' => self::getAccessToken(),
-                    'options' => json_encode([
-                        'destinationCategory' => $path,
-                    ]),
-                ]);
-
-            // The api returns booleans as string.
-            return $response->json()['exists'] === 'true';
-        } catch (Exception $e) {
-            // todo:
-            return false;
-        }
+        return (bool)PixxioDirectory::find($path);
     }
 
-    /*
-     * https://bilder.fh-dortmund.de/cgi-bin/api/pixxio-api.pl/documentation/categories
-     */
     public function createDirectory($path): void
     {
         // prepare path for request.
@@ -102,23 +80,29 @@ class Client
 
     public function deleteFile($path): void
     {
-        // todo: why is this not working?
         if (!$file = PixxioFile::find($path)) {
             throw UnableToDeleteFile::atLocation($path, 'File could not be found in database');
         }
 
         $response = Http::withoutVerifying()
-            ->delete("{$this->endpoint}/files/{$file->id}", [
+            ->withHeaders([
                 'accessToken' => self::getAccessToken(),
-            ]);
+            ])
+            ->delete("{$this->endpoint}/files/{$file->pixxio_id}");
 
         if ($response->json()['success'] !== 'true') {
             throw UnableToDeleteFile::atLocation($path, $response->json()['message']);
         }
+
+        $file->delete();
     }
 
     public function deleteDirectory($path): void
     {
+        if(!$directory = PixxioDirectory::find($path)) {
+            throw new Exception("Could not find directory {$path}");
+        }
+
         $options = json_encode([
             'destinationCategory' => $path,
         ]);
@@ -134,6 +118,8 @@ class Client
         if ($response->json()['success'] !== 'true') {
             throw new Exception($response->json()['message']);
         }
+
+        $directory->delete();
     }
 
     public function upload($path, $contents): bool
@@ -211,7 +197,6 @@ class Client
     {
         if (!$file = PixxioFile::find($path)) {
             throw FileException::notFound($path);
-            // todo: throw exception. Could not find file.
         }
 
         error_clear_last();
