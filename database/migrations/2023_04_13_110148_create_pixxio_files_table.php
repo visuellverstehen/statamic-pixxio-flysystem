@@ -12,8 +12,7 @@ return new class() extends Migration
             $table->integer('pixxio_id')->unique();
             $table->string('relative_path')->primary();
             $table->string('absolute_path');
-            $table->text('alternative_text')->nullable();
-            $table->text('copyright')->nullable();
+            $table->string('alternative_text')->nullable();
             $table->integer('filesize')->nullable();
             $table->string('visibility')->default('public'); // Can it be null?
             $table->timestamp('last_modified')->nullable();

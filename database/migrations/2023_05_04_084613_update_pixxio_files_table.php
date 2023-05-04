@@ -11,6 +11,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('pixxio_files', function (Blueprint $table) {
+            $table->text('alternative_text')->nullable()->change();
             $table->text('copyright')->nullable();
         });
     }
