@@ -23,9 +23,9 @@ class Client
 
     public function __construct()
     {
-        $this->apiKey = config('filesystems.disks.pixxio.api_key');
-        $this->refreshToken = config('filesystems.disks.pixxio.refresh_token');
-        $this->endpoint = config('filesystems.disks.pixxio.endpoint');
+        $this->apiKey = config('filesystems.disks.pixxio.api_key', '');
+        $this->refreshToken = config('filesystems.disks.pixxio.refresh_token', '');
+        $this->endpoint = config('filesystems.disks.pixxio.endpoint', '');
         $this->verifySSLCertificate = config('statamic.flysystem-pixxio.verify_ssl_certificate', true);
     }
 
@@ -80,7 +80,7 @@ class Client
         }
 
         PixxioDirectory::create([
-           'relative_path' => $path,
+           'relative_path' => Str::start($path, '/'),
         ]);
     }
 
@@ -94,7 +94,7 @@ class Client
             ->withHeaders([
                 'accessToken' => self::getAccessToken(),
             ])
-            ->delete("{$this->endpoint}/files/{$file->pixxio_id}");
+            ->delete("/files/{$file->pixxio_id}");
 
         if ($response->json()['success'] !== 'true') {
             throw UnableToDeleteFile::atLocation($path, $response->json()['message']);
@@ -119,7 +119,7 @@ class Client
             ->withHeaders([
                 'accessToken' => self::getAccessToken(),
             ])
-            ->delete("{$this->endpoint}/categories/?options={$urlEncodedOptions}");
+            ->delete("/categories/?options={$urlEncodedOptions}");
 
         if ($response->json()['success'] !== 'true') {
             throw new Exception($response->json()['message']);
@@ -161,7 +161,7 @@ class Client
         $fileId = $response->json()['fileId'];
 
         $fileResponse = Http::pixxio()
-            ->get("{$this->endpoint}/files/{$fileId}", [
+            ->get("/files/{$fileId}", [
                 'accessToken' => self::getAccessToken(),
             ]);
 

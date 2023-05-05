@@ -96,12 +96,10 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        if (PixxioFile::find($path)) {
-            try {
-                $this->client->deleteFile($path);
-            } catch (Exception $exception) {
-                throw UnableToDeleteFile::atLocation($path, $exception->getMessage());
-            }
+        try {
+            $this->client->deleteFile($path);
+        } catch (Exception $exception) {
+            throw UnableToDeleteFile::atLocation($path, $exception->getMessage());
         }
     }
 
