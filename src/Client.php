@@ -344,6 +344,10 @@ class Client
             throw new Exception($response->json()['message']);
         }
 
+        if (empty($response->json())) {
+            throw new Exception('Response is empty. Please check your pixx.io credentials.');
+        }
+
         if (!array_key_exists('accessToken', $response->json())) {
             return null;
         }
