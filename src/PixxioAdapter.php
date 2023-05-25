@@ -125,12 +125,11 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function setVisibility(string $path, string $visibility): void
     {
-        throw UnableToSetVisibility::atLocation($path, 'Pixxio adapter does not support visibility controls.');
+        // Not supported.
     }
 
     public function visibility(string $path): FileAttributes
     {
-        // todo: are all files public?
         return new FileAttributes($path, null, 'public');
     }
 
@@ -172,18 +171,17 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function move(string $source, string $destination, Config $config): void
     {
-        throw new Exception('Pixxio adapter does not support moving files or folders.');
+        // Not supported.
     }
 
     public function copy(string $source, string $destination, Config $config): void
     {
-        throw new Exception('Pixxio adapter does not support copying files or folders.');
+        // Not supported.
     }
 
     private function iterateFolderContents(string $path = '', bool $deep = false): Generator
     {
         yield from PixxioDirectory::all();
-
         yield from PixxioFile::all();
     }
 
