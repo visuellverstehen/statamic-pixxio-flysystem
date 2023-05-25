@@ -21,7 +21,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('pixxio_files', function (Blueprint $table) {
-           $table->dropColumn(['copyright']);
+           $table->dropColumn('copyright');
         });
     }
 };

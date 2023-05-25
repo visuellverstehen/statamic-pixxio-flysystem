@@ -2,6 +2,7 @@
 
 namespace VV\PixxioFlysystem\Console;
 
+use GuzzleHttp\Psr7\MimeType;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use VV\PixxioFlysystem\Client;
@@ -81,6 +82,9 @@ class SyncWithPixxio extends Command
                         'relative_path' => $relativePath,
                         'absolute_path' => $file['imagePath'],
                         'filesize' => $file['fileSize'],
+                        'width' => $file['imageWidth'],
+                        'height' => $file['imageHeight'],
+                        'mimetype' => MimeType::fromFilename($relativePath),
                         'last_modified' => $file['uploadDate'] ?? null,
                         'alternative_text' => addslashes($file['dynamicMetadata']['Alternativetext']) ?? null,
                         'copyright' => addslashes($file['dynamicMetadata']['CopyrightNotice']) ?? null,
