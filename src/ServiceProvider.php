@@ -21,7 +21,8 @@ class ServiceProvider extends AddonServiceProvider
             ->bootAddonCommands()
             ->bootAddonMigrations()
             ->bootMacros()
-            ->bootAddonPixxioDriver();
+            ->bootAddonPixxioDriver()
+            ->overrideAssetClass();
     }
 
     public function bootAddonConfig(): self
@@ -79,6 +80,13 @@ class ServiceProvider extends AddonServiceProvider
 
             return Http::withoutVerifying()->baseUrl($endpoint);
         });
+
+        return $this;
+    }
+
+    public function overrideAssetClass(): self
+    {
+        $this->app->bind(\Statamic\Contracts\Assets\Asset::class, \VV\PixxioFlysystem\Assets\Asset::class);
 
         return $this;
     }

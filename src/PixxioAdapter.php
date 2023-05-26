@@ -179,6 +179,17 @@ class PixxioAdapter implements FilesystemAdapter
         // Not supported.
     }
 
+    public function getUrl(string $path): string
+    {
+        $path = self::prefix($path);
+
+        if ($path !== '/') {
+            return PixxioFile::find($path)?->absolute_path ?? $path;
+        }
+
+        return $path;
+    }
+
     private function iterateFolderContents(string $path = '', bool $deep = false): Generator
     {
         yield from PixxioDirectory::all();
