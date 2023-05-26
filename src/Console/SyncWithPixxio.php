@@ -5,6 +5,7 @@ namespace VV\PixxioFlysystem\Console;
 use GuzzleHttp\Psr7\MimeType;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
+use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Client;
 use VV\PixxioFlysystem\Models\PixxioDirectory;
 use VV\PixxioFlysystem\Models\PixxioFile;
@@ -86,8 +87,8 @@ class SyncWithPixxio extends Command
                         'height' => $file['imageHeight'],
                         'mimetype' => MimeType::fromFilename($relativePath),
                         'last_modified' => $file['uploadDate'] ?? null,
-                        'alternative_text' => addslashes($file['dynamicMetadata']['Alternativetext']) ?? null,
-                        'copyright' => addslashes($file['dynamicMetadata']['CopyrightNotice']) ?? null,
+                        'alternative_text' => YAML::dump($file['dynamicMetadata']['Alternativetext']),
+                        'copyright' => YAML::dump($file['dynamicMetadata']['CopyrightNotice']),
                         'updated_at' => now(),
                     ]
                 );

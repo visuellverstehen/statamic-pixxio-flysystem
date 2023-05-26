@@ -223,13 +223,13 @@ class Client
 
         return <<<EOD
             data:
-              alt: '{$file->alternative_text}'
-              copyright: '{$file->copyright}'
+              alt: {$file->alternative_text}
+              copyright: {$file->copyright}
             size: {$file->filesize}
             last_modified: {$file->last_modified}
             width: {$file->width}
             height: {$file->height}
-            mime_type: '{$file->mimetype}'
+            mime_type: {$file->mimetype}
             duration: null
             EOD;
     }
