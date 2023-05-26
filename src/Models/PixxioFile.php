@@ -31,12 +31,11 @@ class PixxioFile extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'pixxio_id',
-        'relative_path', 'absolute_path',
-        'filesize', 'mimetype',
-        'visibility', 'last_modified',
+        'pixxio_id', 'relative_path', 'absolute_path',
         'alternative_text', 'copyright',
-        'updated_at', 'height', 'width'
+        'visibility', 'last_modified', 'updated_at',
+        'filesize', 'mimetype', 'height', 'width',
+        'focus'
     ];
 
     public function scopeUpdatedAtOlderThan(Builder $query, int $interval): void

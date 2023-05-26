@@ -225,6 +225,7 @@ class Client
             data:
               alt: {$file->alternative_text}
               copyright: {$file->copyright}
+              focus: {$file->focus}
             size: {$file->filesize}
             last_modified: {$file->last_modified}
             width: {$file->width}
@@ -242,31 +243,21 @@ class Client
             throw FileException::notFound($path);
         }
 
-        $metaData = Yaml::parse($data)['data'] ?? [];
+        $incomingMetaData = Yaml::parse($data)['data'] ?? [];
+        $currentMetaData = Yaml::parse(self::getMetaData($path))['data'];
 
-        if ($file->alternative_text === $metaData['alt'] ?? '' && $file->copyright === $metaData['copyright'] ?? '') {
+        if ($incomingMetaData === $currentMetaData) {
             return;
         }
 
-        $response = Http::pixxio()
-            ->asForm()
-            ->put("/files/{$file->pixxio_id}", [
-                'accessToken' => self::getAccessToken(),
-                'options' => json_encode([
-                    'dynamicMetadata' => [
-                        'Alternativetext' => $metaData['alt'] ?? '',
-                        'CopyrightNotice' => $metaData['copyright'] ?? '',
-                    ]
-                ])
-            ]);
-
-        if ($response->json()['success'] !== 'true') {
-            throw new Exception($response->json()['message']);
+        if ($file->alternative_text !== $incomingMetaData['alt'] ?? '' || $file->copyright !== $incomingMetaData['copyright'] ?? '') {
+            self::updateMetaDataOnPixxio($file, $incomingMetaData);
         }
 
         $file->update([
-            'alternative_text' => addslashes($metaData['alt']),
-            'copyright' => addslashes($metaData['copyright'])
+            'alternative_text' => $incomingMetaData['alt'],
+            'copyright' => $incomingMetaData['copyright'],
+            'focus' => $incomingMetaData['focus'],
         ]);
     }
 
@@ -367,5 +358,24 @@ class Client
                 'verify_peer_name' => $this->verifySSLCertificate,
             ],
         ]);
+    }
+
+    private function updateMetaDataOnPixxio(PixxioFile $file, array $data): void
+    {
+        $response = Http::pixxio()
+            ->asForm()
+            ->put("/files/{$file->pixxio_id}", [
+                'accessToken' => self::getAccessToken(),
+                'options' => json_encode([
+                    'dynamicMetadata' => [
+                        'Alternativetext' => $data['alt'] ?? '',
+                        'CopyrightNotice' => $data['copyright'] ?? '',
+                    ]
+                ])
+            ]);
+
+        if ($response->json()['success'] !== 'true') {
+            throw new Exception($response->json()['message']);
+        }
     }
 }
