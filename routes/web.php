@@ -12,5 +12,6 @@ Route::get('/pixxio-file/{id}/file.{extension}', function ($id, $extension) {
     if (!$file) {
         abort(404);
     }
+
     return redirect($file->absolute_path);
 });
