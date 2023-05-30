@@ -20,6 +20,7 @@ class ServiceProvider extends AddonServiceProvider
             ->bootAddonConfig()
             ->bootAddonCommands()
             ->bootAddonMigrations()
+            ->bootRoutes()
             ->bootMacros()
             ->bootAddonPixxioDriver()
             ->overrideAssetClass();
@@ -58,6 +59,12 @@ class ServiceProvider extends AddonServiceProvider
         return $this;
     }
 
+    public function bootRoutes(): self
+    {
+        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+
+        return $this;
+    }
     public function bootAddonCommands(): self
     {
         if ($this->app->runningInConsole()) {

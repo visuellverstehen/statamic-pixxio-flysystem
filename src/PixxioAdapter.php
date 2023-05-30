@@ -183,11 +183,15 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $path = self::prefix($path);
 
-        if ($path !== '/') {
-            return PixxioFile::find($path)?->absolute_path ?? $path;
+        if ($path === '/') {
+            return $path;
         }
 
-        return $path;
+        if (!$file =  PixxioFile::find($path)) {
+            return $path;
+        }
+
+        return $this->buildUrl($file);
     }
 
     private function iterateFolderContents(string $path = '', bool $deep = false): Generator
@@ -199,5 +203,14 @@ class PixxioAdapter implements FilesystemAdapter
     private function prefix($path): string
     {
         return Str::start($path, '/');
+    }
+
+    private function buildUrl(PixxioFile $file): string
+    {
+        $pathInfo = pathinfo($file->absolute_path);
+        $extension = $pathInfo['extension'];
+        $url = config('app.url');
+
+        return "{$url}pixxio-file/{$file->pixxio_id}/file.{$extension}";
     }
 }
