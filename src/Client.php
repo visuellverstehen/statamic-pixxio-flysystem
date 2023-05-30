@@ -255,9 +255,9 @@ class Client
         }
 
         $file->update([
-            'alternative_text' => $incomingMetaData['alt'],
-            'copyright' => $incomingMetaData['copyright'],
-            'focus' => $incomingMetaData['focus'],
+            'alternative_text' => $incomingMetaData['alt'] ?? null,
+            'copyright' => $incomingMetaData['copyright'] ?? null,
+            'focus' => $incomingMetaData['focus'] ?? null,
         ]);
     }
 
