@@ -80,7 +80,7 @@ class Client
         }
 
         PixxioDirectory::create([
-           'relative_path' => Str::start($path, '/'),
+            'relative_path' => Str::start($path, '/'),
         ]);
     }
 
@@ -312,6 +312,38 @@ class Client
             'next_page' => $nextPage,
             'has_more' => $hasMore,
         ];
+    }
+
+    public function getFile($path): ?array
+    {
+        $segments = explode('/', $path);
+        $fileName = end($segments);
+
+        $response = Http::pixxio()
+            ->get('/files', [
+                'accessToken' => self::getAccessToken(),
+                'options' => json_encode([
+                    'pagination' => '1-1',
+                    'fileName' => $fileName,
+                    'fields' => [
+                        'id', 'category', 'originalPath',
+                        'imagePath', 'links',
+                        'originalFilename', 'formatType',
+                        'fileSize', 'fileType', 'description',
+                        'uploadDate', 'createDate', 'imageHeight',
+                        'imageWidth', 'subject', 'dynamicMetadata',
+                    ]
+                ]),
+            ]);
+
+        if (!$response->successful()
+            || $response->json()['success'] !== 'true'
+            || empty($response->json()['files'])
+        ) {
+            return null;
+        }
+
+        return $response->json()['files'][0];
     }
 
     /*
