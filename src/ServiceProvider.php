@@ -23,6 +23,7 @@ class ServiceProvider extends AddonServiceProvider
             ->bootAddonCommands()
             ->bootAddonMigrations()
             ->bootAddonRoutes()
+            ->bootAddonTranslations()
             ->bootAddonMacros()
             ->bootAddonPixxioDriver()
             ->overrideAssetClass();
@@ -81,6 +82,13 @@ class ServiceProvider extends AddonServiceProvider
                 SyncWithPixxio::class,
             ]);
         }
+
+        return $this;
+    }
+
+    public function bootAddonTranslations(): self
+    {
+        $this->loadJsonTranslationsFrom(__DIR__.'/../resources/lang');
 
         return $this;
     }

@@ -29,6 +29,7 @@ class Client
         $this->verifySSLCertificate = config('statamic.flysystem-pixxio.verify_ssl_certificate', true);
     }
 
+
     public function fileExists(string $path): bool
     {
         return (bool)PixxioFile::find($path);
@@ -344,6 +345,24 @@ class Client
         }
 
         return $response->json()['files'][0];
+    }
+
+    public function synchronize(PixxioFile $file): bool
+    {
+        if(!$incomingData = $this->getFile($file->relative_path)) {
+            return false;
+        }
+
+        return $file->update([
+            'absolute_path' => $incomingData['imagePath'],
+            'filesize' => $incomingData['fileSize'],
+            'width' => $incomingData['imageWidth'],
+            'height' => $incomingData['imageHeight'],
+            'last_modified' => $incomingData['uploadDate'] ?? now()->format('Y-m-d H:i:s'),
+            'alternative_text' => $incomingData['dynamicMetadata']['Alternativetext'],
+            'copyright' => $incomingData['dynamicMetadata']['CopyrightNotice'],
+            'updated_at' => now(),
+        ]);
     }
 
     /*

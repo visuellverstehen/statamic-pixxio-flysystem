@@ -2,12 +2,10 @@
 
 namespace VV\PixxioFlysystem\Actions;
 
-use GuzzleHttp\Psr7\MimeType;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Statamic\Actions\Action;
 use Statamic\Contracts\Assets\Asset;
-use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Client;
 use VV\PixxioFlysystem\Models\PixxioFile;
 
@@ -24,53 +22,30 @@ class SyncAssetWithPixxioAction extends Action
 
             try {
                 $client = new Client();
-                $incomingData = $client->getFile($path);
-
-                $file->update([
-                    'absolute_path' => $incomingData['imagePath'],
-                    'filesize' => $incomingData['fileSize'],
-                    'width' => $incomingData['imageWidth'],
-                    'height' => $incomingData['imageHeight'],
-                    'last_modified' => $incomingData['uploadDate'] ?? now()->format('Y-m-d H:i:s'),
-                    'alternative_text' => $incomingData['dynamicMetadata']['Alternativetext'],
-                    'copyright' => $incomingData['dynamicMetadata']['CopyrightNotice'],
-                    'updated_at' => now(),
-                ]);
+                $client->synchronize($file);
+                $succeeded->push($file);
 
                 Cache::forget($asset->metaCacheKey());
-
-                $succeeded->push($file);
             } catch (\Exception $exception) {
                 $failed->push($file);
             }
 
         });
 
-        // todo: refactor
         if ($failed->isNotEmpty()) {
-            if ($failed->count() < 2) {
-                // todo: translate
-                throw new \Exception("{$failed->first()->filename} failed to syncronize.");
-            }
-
-            // todo: translate
-            throw new \Exception("{$failed->count()} files failed to syncronize.");
-        } else {
-
-            if ($succeeded->count() < 2) {
-
-                // todo: translate
-                return "{$succeeded->first()->filename} has been syncronized.";
-            }
-
-            // todo: translate
-            return $succeeded->count() . ' files were syncronized.';
+            $failed->count() > 1
+                ? throw new \Exception(__(':count files failed to synchronize.', ['count' => $failed->count()]))
+                : throw new \Exception(__(':filename failed to synchronize.', ['filename' => $failed->first()->filename]));
         }
-    }
 
+        return $succeeded->count() > 1
+            ? __(':count files were synchronized.', ['count' => $succeeded->count()])
+            : __(':filename has been synchronized.', ['filename' => $succeeded->first()->filename]);
+    }
+    
     public static function title()
     {
-        return __('Sync with Pixx.io');
+        return __('Synchronize with pixx.io');
     }
 
     public function visibleTo($item)
