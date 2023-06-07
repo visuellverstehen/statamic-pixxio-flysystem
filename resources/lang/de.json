@@ -1,0 +1,7 @@
+{
+  "Synchronize with pixx.io": "Mit pixx.io synchronisieren",
+  ":filename failed to synchronize.": ":filename konnte nicht synchronisiert werden.",
+  ":filename has been synchronized.": ":filename wurde synchronisiert.",
+  ":count files failed to synchronize.": ":count Dateien konnten nicht synchronisiert werden.",
+  ":count files were synchronized.": ":count Dateien wurden synchronisiert."
+}

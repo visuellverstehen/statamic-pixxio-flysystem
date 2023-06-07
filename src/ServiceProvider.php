@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Filesystem;
 use Statamic\Providers\AddonServiceProvider;
+use VV\PixxioFlysystem\Actions\SyncAssetWithPixxioAction;
 use VV\PixxioFlysystem\Console\SyncWithPixxio;
 
 class ServiceProvider extends AddonServiceProvider
@@ -17,11 +18,13 @@ class ServiceProvider extends AddonServiceProvider
         parent::boot();
 
         $this
+            ->bootAddonActions()
             ->bootAddonConfig()
             ->bootAddonCommands()
             ->bootAddonMigrations()
-            ->bootRoutes()
-            ->bootMacros()
+            ->bootAddonRoutes()
+            ->bootAddonTranslations()
+            ->bootAddonMacros()
             ->bootAddonPixxioDriver()
             ->overrideAssetClass();
     }
@@ -33,6 +36,13 @@ class ServiceProvider extends AddonServiceProvider
         $this->publishes([
             __DIR__ . '/../config/config.php' => config_path('statamic/flysystem-pixxio.php'),
         ], 'flysystem-pixxio-config');
+
+        return $this;
+    }
+
+    public function bootAddonActions(): self
+    {
+        SyncAssetWithPixxioAction::register();
 
         return $this;
     }
@@ -59,7 +69,7 @@ class ServiceProvider extends AddonServiceProvider
         return $this;
     }
 
-    public function bootRoutes(): self
+    public function bootAddonRoutes(): self
     {
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
@@ -76,7 +86,14 @@ class ServiceProvider extends AddonServiceProvider
         return $this;
     }
 
-    public function bootMacros(): self
+    public function bootAddonTranslations(): self
+    {
+        $this->loadJsonTranslationsFrom(__DIR__.'/../resources/lang');
+
+        return $this;
+    }
+
+    public function bootAddonMacros(): self
     {
         Http::macro('pixxio', function () {
             $endpoint = config('filesystems.disks.pixxio.endpoint', '');

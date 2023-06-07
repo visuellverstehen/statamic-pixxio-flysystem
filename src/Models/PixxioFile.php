@@ -38,6 +38,13 @@ class PixxioFile extends Model
         'focus'
     ];
 
+    public function getFilenameAttribute(): string
+    {
+        $segments = explode('/', $this->relative_path);
+
+        return end($segments);
+    }
+
     public function scopeUpdatedAtOlderThan(Builder $query, int $interval): void
     {
         $query->where('updated_at', '<=', now()->subMinutes($interval)->toDateTimeString());
