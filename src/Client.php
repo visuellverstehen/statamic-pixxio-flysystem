@@ -3,6 +3,7 @@
 namespace VV\PixxioFlysystem;
 
 use Exception;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -28,7 +29,6 @@ class Client
         $this->endpoint = config('filesystems.disks.pixxio.endpoint', '');
         $this->verifySSLCertificate = config('statamic.flysystem-pixxio.verify_ssl_certificate', true);
     }
-
 
     public function fileExists(string $path): bool
     {
@@ -166,20 +166,9 @@ class Client
                 'accessToken' => self::getAccessToken(),
             ]);
 
-        $file = $fileResponse->json();
+        $fileData = $fileResponse->json();
 
-        $directory = $file['category'] ?? '';
-        $relativePath = "{$directory}/{$file['originalFilename']}";
-
-        PixxioFile::create([
-            'pixxio_id' => $file['id'],
-            'relative_path' => $relativePath,
-            'absolute_path' => $file['imagePath'],
-            'filesize' => $file['fileSize'],
-            'last_modified' => $file['uploadDate'] ?? null,
-        ]);
-
-        return true;
+        return self::createPixxioFile($fileData);
     }
 
     public function read($path): string
@@ -349,7 +338,7 @@ class Client
 
     public function synchronize(PixxioFile $file): bool
     {
-        if(!$incomingData = $this->getFile($file->relative_path)) {
+        if (!$incomingData = $this->getFile($file->relative_path)) {
             return false;
         }
 
@@ -363,6 +352,63 @@ class Client
             'copyright' => $incomingData['dynamicMetadata']['CopyrightNotice'],
             'updated_at' => now(),
         ]);
+    }
+
+    public function importNewFiles(int $interval): int
+    {
+        $response = Http::pixxio()
+            ->get('/files', [
+                'accessToken' => self::getAccessToken(),
+                'options' => json_encode([
+                    // todo: support sync with more than 500 files.
+                    'pagination' => '500-1',
+                    'uploadDateMin' => today()->format('Y-m-d'),
+                ]),
+            ]);
+
+        if (!$response->successful() || $response->json()['success'] !== 'true') {
+            throw new Exception($response->json()['message']);
+        }
+
+        $files = $response->json()['files'];
+
+        $importedFiles = collect();
+
+        // Keep only files that have been uploaded in the past five minutes
+        // and have not been saved to database yet.
+        $filesToCreate = collect($files)->filter(function ($fileData) use ($interval) {
+            $fiveMinutesAgo = today()->subMinutes($interval);
+            $uploadDate = Carbon::createFromTimeString($fileData['uploadDate']);
+
+            return $uploadDate->isAfter($fiveMinutesAgo) && !PixxioFile::find(self::getRelativePath($fileData));
+        });
+
+        // Save files to database.
+        $filesToCreate->each(function ($fileData) use ($importedFiles) {
+            if ($file = self::createPixxioFile($fileData)) {
+                $importedFiles->push($file);
+            }
+        });
+
+        return $importedFiles->count();
+    }
+
+    private function createPixxioFile(array $fileData): PixxioFile
+    {
+        return PixxioFile::create([
+            'pixxio_id' => $fileData['id'],
+            'relative_path' => self::getRelativePath($fileData),
+            'absolute_path' => $fileData['imagePath'],
+            'filesize' => $fileData['fileSize'],
+            'last_modified' => $fileData['uploadDate'] ?? null,
+        ]);
+    }
+
+    private function getRelativePath(array $fileData): string
+    {
+        $directory = $file['category'] ?? '';
+
+        return "{$directory}/{$fileData['originalFilename']}";
     }
 
     /*
