@@ -3,6 +3,7 @@
 namespace VV\PixxioFlysystem;
 
 use Exception;
+use GuzzleHttp\Psr7\MimeType;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -312,6 +313,7 @@ class Client
         $response = Http::pixxio()
             ->get('/files', [
                 'accessToken' => self::getAccessToken(),
+                'formatType' => 'webimage',
                 'options' => json_encode([
                     'pagination' => '1-1',
                     'fileName' => $fileName,
@@ -354,7 +356,7 @@ class Client
         ]);
     }
 
-    public function importNewFiles(int $interval): int
+    public function importNewFiles(int $interval = 1000): int
     {
         $response = Http::pixxio()
             ->get('/files', [
@@ -363,6 +365,16 @@ class Client
                     // todo: support sync with more than 500 files.
                     'pagination' => '500-1',
                     'uploadDateMin' => today()->format('Y-m-d'),
+                    // todo: don't repeat yourself
+                    'formatType' => 'webimage',
+                    'fields' => [
+                        'id', 'category', 'originalPath',
+                        'imagePath', 'links',
+                        'originalFilename', 'formatType',
+                        'fileSize', 'fileType', 'description',
+                        'uploadDate', 'createDate', 'imageHeight',
+                        'imageWidth', 'subject', 'dynamicMetadata',
+                    ],
                 ]),
             ]);
 
@@ -399,14 +411,18 @@ class Client
             'pixxio_id' => $fileData['id'],
             'relative_path' => self::getRelativePath($fileData),
             'absolute_path' => $fileData['imagePath'],
-            'filesize' => $fileData['fileSize'],
+            'width' => $fileData['imageWidth'],
+            'height' => $fileData['imageHeight'],
+            'mimetype' => MimeType::fromFilename(self::getRelativePath($fileData)),
             'last_modified' => $fileData['uploadDate'] ?? null,
+            'alternative_text' => $fileData['dynamicMetadata']['Alternativetext'],
+            'copyright' => $fileData['dynamicMetadata']['CopyrightNotice'],
         ]);
     }
 
     private function getRelativePath(array $fileData): string
     {
-        $directory = $file['category'] ?? '';
+        $directory = $fileData['category'] ?? '';
 
         return "{$directory}/{$fileData['originalFilename']}";
     }

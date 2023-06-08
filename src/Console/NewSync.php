@@ -14,17 +14,17 @@ class NewSync extends Command
     {
         try {
             $client = new Client();
-            $count = $client->importNewFiles(5);
-
+            $count = $client->importNewFiles();
 
             if ($count > 0) {
-                $this->info('We could not find any newly uploaded files.');
+                $this->info("Success! We found and imported {$count} newly uploaded files.");
+
                 return;
             }
 
-            $this->info("Success! We found and imported {$count} newly uploaded files.");
+            $this->info('We could not find any newly uploaded files.');
         } catch (\Exception $exception) {
-            $this->error($exception['message']);
+            $this->error($exception->getMessage());
         }
 
     }
