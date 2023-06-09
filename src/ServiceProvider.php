@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Storage;
 use League\Flysystem\Filesystem;
 use Statamic\Providers\AddonServiceProvider;
 use VV\PixxioFlysystem\Actions\SyncAssetWithPixxioAction;
-use VV\PixxioFlysystem\Console\NewSync;
 use VV\PixxioFlysystem\Console\SyncWithPixxio;
 
 class ServiceProvider extends AddonServiceProvider
@@ -81,7 +80,6 @@ class ServiceProvider extends AddonServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 SyncWithPixxio::class,
-                NewSync::class,
             ]);
         }
 

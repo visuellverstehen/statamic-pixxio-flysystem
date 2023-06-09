@@ -3,8 +3,6 @@
 namespace VV\PixxioFlysystem;
 
 use Exception;
-use GuzzleHttp\Psr7\MimeType;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -15,9 +13,24 @@ use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Exceptions\FileException;
 use VV\PixxioFlysystem\Models\PixxioDirectory;
 use VV\PixxioFlysystem\Models\PixxioFile;
+use VV\PixxioFlysystem\Traits\PixxioFileHelper;
 
 class Client
 {
+    use PixxioFileHelper;
+
+    const FILES_REQUEST_OPTIONS = [
+        'formatType' => 'webimage',
+        'fields' => [
+            'id', 'category', 'originalPath',
+            'imagePath', 'links',
+            'originalFilename', 'formatType',
+            'fileSize', 'fileType', 'description',
+            'uploadDate', 'createDate', 'imageHeight',
+            'imageWidth', 'subject', 'dynamicMetadata',
+        ],
+    ];
+
     protected string $refreshToken;
     protected string $apiKey;
     protected string $endpoint;
@@ -178,7 +191,7 @@ class Client
         $contents = @file_get_contents(
             $path,
             false,
-            self::streamingContext(),
+            self::streamContext(),
         );
 
         if ($contents === false) {
@@ -195,7 +208,7 @@ class Client
         }
 
         error_clear_last();
-        $contents = @fopen($file->absolute_path, 'rb', false, self::streamingContext());
+        $contents = @fopen($file->absolute_path, 'rb', false, self::streamContext());
 
         if ($contents === false) {
             throw UnableToReadFile::fromLocation($path, error_get_last()['message'] ?? '');
@@ -271,21 +284,15 @@ class Client
 
     public function listFiles(int $page): array
     {
+        $options = array_merge(
+            ['pagination' => "500-{$page}"],
+            self::FILES_REQUEST_OPTIONS
+        );
+
         $response = Http::pixxio()
             ->get('/files', [
                 'accessToken' => self::getAccessToken(),
-                'options' => json_encode([
-                    'pagination' => "500-{$page}",
-                    'formatType' => 'webimage',
-                    'fields' => [
-                        'id', 'category', 'originalPath',
-                        'imagePath', 'links',
-                        'originalFilename', 'formatType',
-                        'fileSize', 'fileType', 'description',
-                        'uploadDate', 'createDate', 'imageHeight',
-                        'imageWidth', 'subject', 'dynamicMetadata',
-                    ],
-                ]),
+                'options' => json_encode($options),
             ]);
 
         if ($response->json()['success'] !== 'true') {
@@ -310,22 +317,15 @@ class Client
         $segments = explode('/', $path);
         $fileName = end($segments);
 
+        $options = array_merge([
+            'pagination' => '1-1',
+            'fileName' => $fileName,
+        ], self::FILES_REQUEST_OPTIONS);
+
         $response = Http::pixxio()
             ->get('/files', [
                 'accessToken' => self::getAccessToken(),
-                'formatType' => 'webimage',
-                'options' => json_encode([
-                    'pagination' => '1-1',
-                    'fileName' => $fileName,
-                    'fields' => [
-                        'id', 'category', 'originalPath',
-                        'imagePath', 'links',
-                        'originalFilename', 'formatType',
-                        'fileSize', 'fileType', 'description',
-                        'uploadDate', 'createDate', 'imageHeight',
-                        'imageWidth', 'subject', 'dynamicMetadata',
-                    ]
-                ]),
+                'options' => json_encode($options),
             ]);
 
         if (!$response->successful()
@@ -338,97 +338,53 @@ class Client
         return $response->json()['files'][0];
     }
 
-    public function synchronize(PixxioFile $file): bool
+    /**
+     * Requests all files that have been uploaded today.
+     *
+     * todo: support more than 500 new incoming files.
+     */
+    public function getNewFiles(): array
     {
-        if (!$incomingData = $this->getFile($file->relative_path)) {
-            return false;
-        }
+        $options = array_merge([
+            'pagination' => '500-1',
+            'uploadDateMin' => today()->format('Y-m-d'),
+        ], self::FILES_REQUEST_OPTIONS);
 
-        return $file->update([
-            'absolute_path' => $incomingData['imagePath'],
-            'filesize' => $incomingData['fileSize'],
-            'width' => $incomingData['imageWidth'],
-            'height' => $incomingData['imageHeight'],
-            'last_modified' => $incomingData['uploadDate'] ?? now()->format('Y-m-d H:i:s'),
-            'alternative_text' => $incomingData['dynamicMetadata']['Alternativetext'],
-            'copyright' => $incomingData['dynamicMetadata']['CopyrightNotice'],
-            'updated_at' => now(),
-        ]);
-    }
-
-    public function importNewFiles(int $interval = 1000): int
-    {
         $response = Http::pixxio()
             ->get('/files', [
                 'accessToken' => self::getAccessToken(),
-                'options' => json_encode([
-                    // todo: support sync with more than 500 files.
-                    'pagination' => '500-1',
-                    'uploadDateMin' => today()->format('Y-m-d'),
-                    // todo: don't repeat yourself
-                    'formatType' => 'webimage',
-                    'fields' => [
-                        'id', 'category', 'originalPath',
-                        'imagePath', 'links',
-                        'originalFilename', 'formatType',
-                        'fileSize', 'fileType', 'description',
-                        'uploadDate', 'createDate', 'imageHeight',
-                        'imageWidth', 'subject', 'dynamicMetadata',
-                    ],
-                ]),
+                'options' => json_encode($options),
             ]);
 
         if (!$response->successful() || $response->json()['success'] !== 'true') {
             throw new Exception($response->json()['message']);
         }
 
-        $files = $response->json()['files'];
-
-        $importedFiles = collect();
-
-        // Keep only files that have been uploaded in the past five minutes
-        // and have not been saved to database yet.
-        $filesToCreate = collect($files)->filter(function ($fileData) use ($interval) {
-            $fiveMinutesAgo = today()->subMinutes($interval);
-            $uploadDate = Carbon::createFromTimeString($fileData['uploadDate']);
-
-            return $uploadDate->isAfter($fiveMinutesAgo) && !PixxioFile::find(self::getRelativePath($fileData));
-        });
-
-        // Save files to database.
-        $filesToCreate->each(function ($fileData) use ($importedFiles) {
-            if ($file = self::createPixxioFile($fileData)) {
-                $importedFiles->push($file);
-            }
-        });
-
-        return $importedFiles->count();
+        return $response->json()['files'];
     }
 
-    private function createPixxioFile(array $fileData): PixxioFile
+    private function updateMetaDataOnPixxio(PixxioFile $file, array $data): void
     {
-        return PixxioFile::create([
-            'pixxio_id' => $fileData['id'],
-            'relative_path' => self::getRelativePath($fileData),
-            'absolute_path' => $fileData['imagePath'],
-            'width' => $fileData['imageWidth'],
-            'height' => $fileData['imageHeight'],
-            'mimetype' => MimeType::fromFilename(self::getRelativePath($fileData)),
-            'last_modified' => $fileData['uploadDate'] ?? null,
-            'alternative_text' => $fileData['dynamicMetadata']['Alternativetext'],
-            'copyright' => $fileData['dynamicMetadata']['CopyrightNotice'],
-        ]);
-    }
+        $response = Http::pixxio()
+            ->asForm()
+            ->put("/files/{$file->pixxio_id}", [
+                'accessToken' => self::getAccessToken(),
+                'options' => json_encode([
+                    'dynamicMetadata' => [
+                        'Alternativetext' => $data['alt'] ?? '',
+                        'CopyrightNotice' => $data['copyright'] ?? '',
+                    ]
+                ])
+            ]);
 
-    private function getRelativePath(array $fileData): string
-    {
-        $directory = $fileData['category'] ?? '';
-
-        return "{$directory}/{$fileData['originalFilename']}";
+        if ($response->json()['success'] !== 'true') {
+            throw new Exception($response->json()['message']);
+        }
     }
 
     /*
-     * Access Tokens are valid for 30 minutes. But right now we only store the current token for 5 minutes and make a new request.
+     * Access Tokens are valid for 30 minutes.
+     * But right now we only store the current token for 5 minutes and make a new request.
      */
     private function getAccessToken(): ?string
     {
@@ -437,12 +393,10 @@ class Client
         }
 
         // Request token.
-        $response = Http::pixxio()
-            ->withBody(json_encode([
-                'refreshToken' => $this->refreshToken,
-                'apiKey' => $this->apiKey,
-            ]))
-            ->post("{$this->endpoint}/accessToken");
+        $response = Http::pixxio()->withBody(json_encode([
+            'refreshToken' => $this->refreshToken,
+            'apiKey' => $this->apiKey,
+        ]))->post("{$this->endpoint}/accessToken");
 
         if (!$response->successful()) {
             throw new Exception($response->json()['message']);
@@ -463,7 +417,7 @@ class Client
         return $accessToken;
     }
 
-    private function streamingContext()
+    private function streamContext()
     {
         return stream_context_create([
             'ssl' => [
@@ -471,24 +425,5 @@ class Client
                 'verify_peer_name' => $this->verifySSLCertificate,
             ],
         ]);
-    }
-
-    private function updateMetaDataOnPixxio(PixxioFile $file, array $data): void
-    {
-        $response = Http::pixxio()
-            ->asForm()
-            ->put("/files/{$file->pixxio_id}", [
-                'accessToken' => self::getAccessToken(),
-                'options' => json_encode([
-                    'dynamicMetadata' => [
-                        'Alternativetext' => $data['alt'] ?? '',
-                        'CopyrightNotice' => $data['copyright'] ?? '',
-                    ]
-                ])
-            ]);
-
-        if ($response->json()['success'] !== 'true') {
-            throw new Exception($response->json()['message']);
-        }
     }
 }
