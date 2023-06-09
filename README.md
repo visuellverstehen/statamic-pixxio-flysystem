@@ -1,4 +1,4 @@
-# Statamic Pixxio Flysystem 
+# Statamic Pixxio Flysystem
 
 ![Statamic 3.4+](https://img.shields.io/badge/Statamic-3.4+-FF269E?style=for-the-badge&link=https://statamic.com)
 
@@ -50,6 +50,10 @@ Add `alt` and `copyright` fields to the asset-container blueprint.
 
 ``` bash
 php artisan pixxio:sync
+```
+If you wish to only import newly added files you can use the `--new` option.
+``` bash
+php artisan pixxio:sync --new
 ```
 
 In order to keep the database updated schedule a task that runs synchronization script regularly.
