@@ -8,6 +8,7 @@ use Statamic\Actions\Action;
 use Statamic\Contracts\Assets\Asset;
 use VV\PixxioFlysystem\Client;
 use VV\PixxioFlysystem\Models\PixxioFile;
+use VV\PixxioFlysystem\Utilities\PixxioFileMapper;
 
 class SyncAssetWithPixxioAction extends Action
 {
@@ -22,7 +23,10 @@ class SyncAssetWithPixxioAction extends Action
 
             try {
                 $client = new Client();
-                $client->synchronize($file);
+                $incomingFileData = (new PixxioFileMapper($client->getFile($path)))->toArray();
+
+                $file->update($incomingFileData);
+
                 $succeeded->push($file);
 
                 Cache::forget($asset->metaCacheKey());
@@ -42,7 +46,7 @@ class SyncAssetWithPixxioAction extends Action
             ? __(':count files were synchronized.', ['count' => $succeeded->count()])
             : __(':filename has been synchronized.', ['filename' => $succeeded->first()->filename]);
     }
-    
+
     public static function title()
     {
         return __('Synchronize with pixx.io');
