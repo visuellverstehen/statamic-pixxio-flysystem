@@ -33,15 +33,10 @@ class SyncNewFilesOnly
 
             $imported = collect();
 
-            // Keep only files that have been uploaded in the past five minutes
-            // and have not been saved to database yet.
+            // Keep only files have not been saved to database yet.
             $filesToCreate = collect($files)
                 ->filter(function ($fileData) {
-                    $fiveMinutesAgo = today()->subMinutes(5000);
-                    $uploadDate = Carbon::createFromTimeString($fileData['uploadDate']);
-
-                    return $uploadDate->isAfter($fiveMinutesAgo)
-                        && !PixxioFile::find(self::getRelativePath($fileData));
+                    return !PixxioFile::find(self::getRelativePath($fileData));
                 });
 
             // Save files to database.
