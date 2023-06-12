@@ -3,6 +3,7 @@
 namespace VV\PixxioFlysystem\Utilities;
 
 use GuzzleHttp\Psr7\MimeType;
+use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Traits\PixxioFileHelper;
 
 class PixxioFileMapper
@@ -27,8 +28,8 @@ class PixxioFileMapper
         $this->filesize = (int) $data['fileSize'];
         $this->width = (int) $data['imageWidth'];
         $this->height = (int) $data['imageHeight'];
-        $this->alternativeText = $data['dynamicMetadata']['Alternativetext'] ?? null;
-        $this->copyright = $data['dynamicMetadata']['CopyrightNotice'] ?? null;
+        $this->alternativeText = YAML::dump($data['dynamicMetadata']['Alternativetext']) ?? null;
+        $this->copyright = YAML::dump($data['dynamicMetadata']['CopyrightNotice']) ?? null;
         $this->lastModified = $data['uploadDate'] ?? null;
     }
 
