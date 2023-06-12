@@ -143,7 +143,7 @@ class Client
         $directory->delete();
     }
 
-    public function upload($path, $contents): bool
+    public function upload($path, $contents): PixxioFile
     {
         error_clear_last();
         $fileContents = @stream_get_contents($contents);
