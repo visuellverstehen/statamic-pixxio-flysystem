@@ -22,14 +22,14 @@ class PixxioFileMapper
 
     public function __construct(array $data)
     {
-        $this->id = (int) $data['id'];
+        $this->id = (int)$data['id'];
         $this->relativePath = self::getRelativePath($data);
         $this->absolutePath = $data['imagePath'];
-        $this->filesize = (int) $data['fileSize'];
-        $this->width = (int) $data['imageWidth'];
-        $this->height = (int) $data['imageHeight'];
+        $this->filesize = (int)$data['fileSize'];
+        $this->width = (int)$data['imageWidth'];
+        $this->height = (int)$data['imageHeight'];
         $this->alternativeText = YAML::dump($data['dynamicMetadata']['Alternativetext']) ?? null;
-        $this->copyright = YAML::dump($data['dynamicMetadata']['CopyrightNotice']) ?? null;
+        $this->copyright = self::getCopyrightText($data);
         $this->lastModified = $data['uploadDate'] ?? null;
     }
 
@@ -48,5 +48,18 @@ class PixxioFileMapper
             'copyright' => $this->copyright,
             'updated_at' => now(),
         ];
+    }
+
+    protected function getCopyrightText(array $data): ?string
+    {
+        if (!$copyright = $data['dynamicMetadata']['CopyrightNotice'] ?? null) {
+            return null;
+        }
+
+        if (!$photographer = $data['dynamicMetadata']['Fotograf'] ?? null) {
+            return  YAML::dump($copyright);
+        }
+
+        return YAML::dump("{$copyright}, {$photographer}");
     }
 }
