@@ -229,6 +229,7 @@ class Client
             data:
               alt: {$file->alternative_text}
               copyright: {$file->copyright}
+              description: {$file->description}
               focus: {$file->focus}
             size: {$file->filesize}
             last_modified: {$file->last_modified}

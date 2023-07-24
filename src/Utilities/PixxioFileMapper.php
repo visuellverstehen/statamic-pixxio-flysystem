@@ -18,6 +18,7 @@ class PixxioFileMapper
     protected int $height;
     protected ?string $alternativeText;
     protected ?string $copyright;
+    protected ?string $description;
     protected ?string $lastModified;
 
     public function __construct(array $data)
@@ -30,6 +31,7 @@ class PixxioFileMapper
         $this->height = (int)$data['imageHeight'];
         $this->alternativeText = YAML::dump($data['dynamicMetadata']['Alternativetext']) ?? null;
         $this->copyright = self::getCopyrightText($data);
+        $this->description = self::getDescription($data);
         $this->lastModified = $data['uploadDate'] ?? null;
     }
 
@@ -46,6 +48,7 @@ class PixxioFileMapper
             'last_modified' => $this->lastModified,
             'alternative_text' => $this->alternativeText,
             'copyright' => $this->copyright,
+            'description' => $this->description,
             'updated_at' => now(),
         ];
     }
@@ -61,5 +64,14 @@ class PixxioFileMapper
         }
 
         return YAML::dump("{$copyright}, {$photographer}");
+    }
+
+    protected function getDescription(array $data): ?string
+    {
+        if (!$description = $data['description'] ?? null) {
+            return null;
+        }
+
+        return YAML::dump($description);
     }
 }

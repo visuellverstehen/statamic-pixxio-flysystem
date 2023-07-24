@@ -35,7 +35,7 @@ class PixxioFile extends Model
         'alternative_text', 'copyright',
         'visibility', 'last_modified', 'updated_at',
         'filesize', 'mimetype', 'height', 'width',
-        'focus'
+        'focus', 'description',
     ];
 
     public function getFilenameAttribute(): string
