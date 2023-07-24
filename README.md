@@ -44,7 +44,7 @@ php artisan migrate
 
 ### Edit blueprint
 
-Add `alt` and `copyright` fields to the asset-container blueprint.
+Add `alt`, `copyright` and `description` fields to the asset-container blueprint.
 
 ### Run synchronization script:
 
