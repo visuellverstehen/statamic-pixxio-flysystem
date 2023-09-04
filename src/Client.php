@@ -387,7 +387,7 @@ class Client
      * Access Tokens are valid for 30 minutes.
      * But right now we only store the current token for 5 minutes and make a new request.
      */
-    private function getAccessToken(): ?string
+    public function getAccessToken(): ?string
     {
         if ($existingToken = Cache::get('pixxio-access')) {
             return Crypt::decryptString($existingToken);
