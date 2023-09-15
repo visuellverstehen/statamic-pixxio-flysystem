@@ -79,13 +79,25 @@ class SyncAllFilesAndDirectories
                     continue;
                 }
 
-                PixxioFile::updateOrCreate(
-                    [
-                        'relative_path' => $relativePath,
-                    ],
-                    (new PixxioFileMapper($file))->toArray(),
-                );
-
+                $pixxioFile = PixxioFile::where('relative_path', $relativePath)
+                    ->where('pixxio_id', $file['id'])
+                    ->first();
+                
+                if ($pixxioFile) {
+                    $pixxioFile->update((new PixxioFileMapper($file))->toArray());
+                    $progressBar->advance();
+                
+                    continue;
+                }
+                
+                $result = PixxioFile::where('relative_path', $relativePath)
+                    ->orWhere('pixxio_id', $file['id'])
+                    ->get();
+                
+                if ($result->isEmpty()) {
+                    PixxioFile::create((new PixxioFileMapper($file))->toArray());
+                }
+                
                 $progressBar->advance();
             }
             $progressBar->finish();
