@@ -36,7 +36,10 @@ class SyncNewFilesOnly
             // Keep only files have not been saved to database yet.
             $filesToCreate = collect($files)
                 ->filter(function ($fileData) {
-                    return !PixxioFile::find(self::getRelativePath($fileData));
+
+                    return !PixxioFile::where('relative_path', self::getRelativePath($fileData))
+                        ->orWhere('pixxio_id', $fileData['id'])
+                        ->first();
                 });
 
             // Save files to database.
