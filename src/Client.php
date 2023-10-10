@@ -178,6 +178,7 @@ class Client
         $fileResponse = Http::pixxio()
             ->get("/files/{$fileId}", [
                 'accessToken' => self::getAccessToken(),
+                'options' => json_encode(self::FILES_REQUEST_OPTIONS)
             ]);
 
         $fileData = $fileResponse->json();
