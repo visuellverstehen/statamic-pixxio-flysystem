@@ -53,7 +53,7 @@ class PixxioFile extends Model
     protected function lastModified(): Attribute
     {
         return Attribute::make(
-            get: fn (mixed $value, array $attributes) => Carbon::createFromTimeString($attributes['last_modified'])->timestamp,
+            get: fn (mixed $value, array $attributes) => is_null($attributes['last_modified']) ? null :Carbon::createFromTimeString($attributes['last_modified'])->timestamp,
         );
     }
 }
