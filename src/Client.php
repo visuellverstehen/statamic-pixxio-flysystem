@@ -19,16 +19,15 @@ class Client
 {
     use PixxioFileHelper;
 
-    const FILES_REQUEST_OPTIONS = [
-        'formatType' => 'webimage',
-        'fields' => [
-            'id', 'category', 'originalPath',
-            'imagePath', 'links',
-            'originalFilename', 'formatType',
-            'fileSize', 'fileType', 'description',
-            'uploadDate', 'createDate', 'imageHeight',
-            'imageWidth', 'subject', 'dynamicMetadata',
-        ],
+    const FORMAT_TYPE = 'webimage';
+    const SHOW_VERSIONS = 'false';
+    const FIELDS = [
+        'id', 'category', 'originalPath',
+        'imagePath', 'links',
+        'originalFilename', 'formatType',
+        'fileSize', 'fileType', 'description',
+        'uploadDate', 'createDate', 'imageHeight',
+        'imageWidth', 'subject', 'dynamicMetadata',
     ];
 
     protected string $refreshToken;
@@ -288,7 +287,11 @@ class Client
     {
         $options = array_merge(
             ['pagination' => "500-{$page}"],
-            self::FILES_REQUEST_OPTIONS
+            [
+                'formatType' => self::FORMAT_TYPE,
+                'showVersions' => self::SHOW_VERSIONS,
+                'fields' => self::FIELDS,
+            ]
         );
 
         $response = Http::pixxio()
@@ -322,7 +325,11 @@ class Client
         $options = array_merge([
             'pagination' => '1-1',
             'fileName' => $fileName,
-        ], self::FILES_REQUEST_OPTIONS);
+        ], [
+            'formatType' => self::FORMAT_TYPE,
+            'showVersions' => self::SHOW_VERSIONS,
+            'fields' => self::FIELDS,
+        ]);
 
         $response = Http::pixxio()
             ->get('/files', [
@@ -350,7 +357,11 @@ class Client
         $options = array_merge([
             'pagination' => '500-1',
             'uploadDateMin' => today()->format('Y-m-d'),
-        ], self::FILES_REQUEST_OPTIONS);
+        ], [
+            'formatType' => self::FORMAT_TYPE,
+            'showVersions' => self::SHOW_VERSIONS,
+            'fields' => self::FIELDS,
+        ]);
 
         $response = Http::pixxio()
             ->get('/files', [
