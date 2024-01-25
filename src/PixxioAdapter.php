@@ -209,7 +209,7 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $pathInfo = pathinfo($file->absolute_path);
         $extension = $pathInfo['extension'];
-        $url = Stringy::ensureLeft(config('app.url'), '/');
+        $url = Stringy::ensureRight('/', config('app.url'));
 
         return "{$url}pixxio-file/{$file->pixxio_id}/file.{$extension}";
     }
