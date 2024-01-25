@@ -14,8 +14,8 @@ use League\Flysystem\UnableToCreateDirectory;
 use League\Flysystem\UnableToDeleteDirectory;
 use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
-use League\Flysystem\UnableToSetVisibility;
 use League\Flysystem\UnableToWriteFile;
+use Stringy\StaticStringy as Stringy;
 use VV\PixxioFlysystem\Models\PixxioDirectory;
 use VV\PixxioFlysystem\Models\PixxioFile;
 
@@ -209,7 +209,7 @@ class PixxioAdapter implements FilesystemAdapter
     {
         $pathInfo = pathinfo($file->absolute_path);
         $extension = $pathInfo['extension'];
-        $url = config('app.url');
+        $url = Stringy::ensureLeft(config('app.url'), '/');
 
         return "{$url}pixxio-file/{$file->pixxio_id}/file.{$extension}";
     }
