@@ -408,10 +408,9 @@ class Client
         }
 
         // Request token.
-        $response = Http::pixxio()->withBody(json_encode([
-            'refreshToken' => $this->refreshToken,
-            'apiKey' => $this->apiKey,
-        ]))->post("{$this->endpoint}/accessToken");
+        $response = Http::pixxio()
+            ->withBody("refreshToken={$this->refreshToken}&apiKey={$this->apiKey}", 'application/x-www-form-urlencoded')
+            ->post("{$this->endpoint}/accessToken");
 
         if (!$response->successful()) {
             throw new Exception($response->json()['message']);
