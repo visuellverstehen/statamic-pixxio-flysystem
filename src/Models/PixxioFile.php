@@ -6,6 +6,8 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Statamic\Facades\AssetContainer;
+use Stringy\StaticStringy;
 
 class PixxioFile extends Model
 {
@@ -37,6 +39,16 @@ class PixxioFile extends Model
         'filesize', 'mimetype', 'height', 'width',
         'focus', 'description',
     ];
+
+    protected static function booted(): void
+    {
+        static::created(function (PixxioFile $pixxioFile) {
+            $container = AssetContainer::findByHandle('pixxio');
+            $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
+
+            $container->makeAsset($sanitizedPath);
+        });
+    }
 
     public function getFilenameAttribute(): string
     {
