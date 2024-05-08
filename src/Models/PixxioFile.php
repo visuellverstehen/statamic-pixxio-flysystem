@@ -43,7 +43,10 @@ class PixxioFile extends Model
     protected static function booted(): void
     {
         static::created(function (PixxioFile $pixxioFile) {
-            $container = AssetContainer::findByHandle('pixxio');
+            if (!$container = AssetContainer::findByHandle('pixxio')) {
+                return;
+            }
+
             $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
 
             $container->makeAsset($sanitizedPath);
