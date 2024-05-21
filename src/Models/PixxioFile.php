@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Statamic\Facades\AssetContainer;
 use Stringy\StaticStringy;
 
@@ -49,7 +50,15 @@ class PixxioFile extends Model
 
             $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
 
-            $container->makeAsset($sanitizedPath);
+            try {
+                $asset = $container->makeAsset($sanitizedPath);
+                $asset->save();
+            } catch (\Exception $exception) {
+                Log::error('Asset could not be saved: ' . $exception->getMessage(), [
+                    'path' => $sanitizedPath,
+                    'asset_container' => 'pixxio',
+                ]);
+            }
         });
     }
 
