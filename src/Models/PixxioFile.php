@@ -44,11 +44,13 @@ class PixxioFile extends Model
     protected static function booted(): void
     {
         static::created(function (PixxioFile $pixxioFile) {
+            if (!$container = AssetContainer::findByHandle('pixxio')) {
+                return;
+            }
+
+            $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
+
             try {
-                $container = AssetContainer::findByHandle('pixxio');
-
-                $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
-
                 $asset = $container->makeAsset($sanitizedPath);
                 $asset->save();
             } catch (\Exception $exception) {
@@ -74,7 +76,7 @@ class PixxioFile extends Model
     protected function lastModified(): Attribute
     {
         return Attribute::make(
-            get: fn (mixed $value, array $attributes) => is_null($attributes['last_modified']) ? null :Carbon::createFromTimeString($attributes['last_modified'])->timestamp,
+            get: fn(mixed $value, array $attributes) => is_null($attributes['last_modified']) ? null : Carbon::createFromTimeString($attributes['last_modified'])->timestamp,
         );
     }
 }
