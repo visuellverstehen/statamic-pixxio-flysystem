@@ -44,19 +44,16 @@ class PixxioFile extends Model
     protected static function booted(): void
     {
         static::created(function (PixxioFile $pixxioFile) {
-            if (!$container = AssetContainer::findByHandle('pixxio')) {
-                return;
-            }
-
-            $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
-
             try {
+                $container = AssetContainer::findByHandle('pixxio');
+
+                $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
+
                 $asset = $container->makeAsset($sanitizedPath);
                 $asset->save();
             } catch (\Exception $exception) {
-                Log::error('Asset could not be saved: ' . $exception->getMessage(), [
-                    'path' => $sanitizedPath,
-                    'asset_container' => 'pixxio',
+                Log::error('Asset could not be created from pixxio file: ' . $exception->getMessage(), [
+                    'pixxio_file' => $pixxioFile,
                 ]);
             }
         });
