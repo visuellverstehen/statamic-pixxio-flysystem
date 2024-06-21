@@ -1,7 +1,7 @@
 {
     "name": "visuellverstehen/statamic-pixxio-flysystem",
     "description": "A Flysystem Adapter for the Pixxio API",
-    "keywords": [ "statamic", "addon", "flysystem", "filesystem", "pixxio", "assets", "asset-container", "v3", "v4" ],
+    "keywords": [ "statamic", "addon", "flysystem", "filesystem", "pixxio", "assets", "asset-container" ],
     "type": "statamic-addon",
     "autoload": {
         "psr-4": {
@@ -28,7 +28,7 @@
         }
     },
     "require": {
-        "statamic/cms": "^3.4 || ^4.0 || ^4.0@alpha || ^4.0@beta || ^4.0@RC"
+        "statamic/cms": "^3.4 || ^4.0 || ^5.0"
     },
     "config": {
         "allow-plugins": {
