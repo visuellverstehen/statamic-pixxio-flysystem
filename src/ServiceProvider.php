@@ -64,7 +64,9 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddonMigrations(): self
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->publishesMigrations([
+            __DIR__.'/../database/migrations' => database_path('migrations'),
+        ], groups: 'flysystem-pixxio-migrations');
 
         return $this;
     }
