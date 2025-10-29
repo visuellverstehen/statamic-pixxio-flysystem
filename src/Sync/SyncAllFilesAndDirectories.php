@@ -109,7 +109,9 @@ class SyncAllFilesAndDirectories
 
     private function deleteNonExistingDirectories(): void
     {
-        $directoriesToBeDeleted = PixxioDirectory::query()->updatedAtOlderThan(5)->get();
+        $twentyFourHours = 60 * 24;
+
+        $directoriesToBeDeleted = PixxioDirectory::query()->updatedAtOlderThan($twentyFourHours)->get();
 
         $directoriesToBeDeleted->each(function ($directory) {
             $directory->delete();
@@ -121,8 +123,9 @@ class SyncAllFilesAndDirectories
 
     private function deleteNonExistingFiles(): void
     {
-        // Right now we assume that the synchronization process doesn't last more than 5 minutes.
-        $filesToBeDeleted = PixxioFile::query()->updatedAtOlderThan(5)->get();
+        $twentyFourHours = 60 * 24;
+        
+        $filesToBeDeleted = PixxioFile::query()->updatedAtOlderThan($twentyFourHours)->get();
 
         $filesToBeDeleted->each(function ($file) {
             $file->delete();
