@@ -29,8 +29,8 @@ composer require visuellverstehen/statamic-pixxio-flysystem
 'disks' => [
     'pixxio' => [
         'driver' => 'pixxio',
-        'api_key' => env('PIXXIO_API_KEY'),
-        'refresh_token' => env('PIXXIO_REFRESH_TOKEN'),
+        'access_token' => env('PIXXIO_ACCESS_TOKEN'),
+        'url' => env('PIXXIO_URL'),
         'endpoint' => env('PIXXIO_ENDPOINT'),
     ],
 ],

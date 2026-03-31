@@ -3,8 +3,6 @@
 namespace VV\PixxioFlysystem;
 
 use Exception;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use League\Flysystem\UnableToDeleteFile;
@@ -30,16 +28,10 @@ class Client
         'imageWidth', 'subject', 'dynamicMetadata',
     ];
 
-    protected string $refreshToken;
-    protected string $apiKey;
-    protected string $endpoint;
     protected bool $verifySSLCertificate;
 
     public function __construct()
     {
-        $this->apiKey = config('filesystems.disks.pixxio.api_key', '');
-        $this->refreshToken = config('filesystems.disks.pixxio.refresh_token', '');
-        $this->endpoint = config('filesystems.disks.pixxio.endpoint', '');
         $this->verifySSLCertificate = config('statamic.flysystem-pixxio.verify_ssl_certificate', true);
     }
 
@@ -81,8 +73,7 @@ class Client
             : Str::substr($path, 0, $length);
 
         $response = Http::pixxio()
-            ->post("{$this->endpoint}/categories", [
-                'accessToken' => self::getAccessToken(),
+            ->post("/categories", [
                 'options' => json_encode([
                     'categoryName' => $directoryName,
                     'rootCategory' => $rootDirectory,
@@ -105,9 +96,6 @@ class Client
         }
 
         $response = Http::pixxio()
-            ->withHeaders([
-                'accessToken' => self::getAccessToken(),
-            ])
             ->delete("/files/{$file->pixxio_id}");
 
         if ($response->json()['success'] !== 'true') {
@@ -130,9 +118,6 @@ class Client
         $urlEncodedOptions = urlencode($options);
 
         $response = Http::pixxio()
-            ->withHeaders([
-                'accessToken' => self::getAccessToken(),
-            ])
             ->delete("/categories/?options={$urlEncodedOptions}");
 
         if ($response->json()['success'] !== 'true') {
@@ -160,7 +145,6 @@ class Client
         $response = Http::pixxio()
             ->attach('file', $fileContents, $fileName)
             ->post("{$this->endpoint}/files", [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'category' => $directory,
                     'forceConversion' => 'true',
@@ -176,7 +160,6 @@ class Client
 
         $fileResponse = Http::pixxio()
             ->get("/files/{$fileId}", [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'fields' => self::FIELDS
                 ])
@@ -272,7 +255,6 @@ class Client
     {
         $response = Http::pixxio()
             ->get('/categories', [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'type' => 'createEditCategories',
                 ]),
@@ -298,7 +280,6 @@ class Client
 
         $response = Http::pixxio()
             ->get('/files', [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode($options),
             ]);
 
@@ -335,7 +316,6 @@ class Client
 
         $response = Http::pixxio()
             ->get('/files', [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode($options),
             ]);
 
@@ -351,8 +331,6 @@ class Client
 
     /**
      * Requests all files that have been uploaded today.
-     *
-     * todo: support more than 500 new incoming files.
      */
     public function getNewFiles(): array
     {
@@ -367,7 +345,6 @@ class Client
 
         $response = Http::pixxio()
             ->get('/files', [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode($options),
             ]);
 
@@ -383,7 +360,6 @@ class Client
         $response = Http::pixxio()
             ->asForm()
             ->put("/files/{$file->pixxio_id}", [
-                'accessToken' => self::getAccessToken(),
                 'options' => json_encode([
                     'dynamicMetadata' => [
                         'Alternativetext' => $data['alt'] ?? '',
@@ -395,40 +371,6 @@ class Client
         if ($response->json()['success'] !== 'true') {
             throw new Exception($response->json()['message']);
         }
-    }
-
-    /*
-     * Access Tokens are valid for 30 minutes.
-     * But right now we only store the current token for 5 minutes and make a new request.
-     */
-    public function getAccessToken(): ?string
-    {
-        if ($existingToken = Cache::get('pixxio-access')) {
-            return Crypt::decryptString($existingToken);
-        }
-
-        // Request token.
-        $response = Http::pixxio()
-            ->withBody("refreshToken={$this->refreshToken}&apiKey={$this->apiKey}", 'application/x-www-form-urlencoded')
-            ->post("{$this->endpoint}/accessToken");
-
-        if (!$response->successful()) {
-            throw new Exception($response->json()['message']);
-        }
-
-        if (empty($response->json())) {
-            throw new Exception('Response is empty. Please check your pixx.io credentials.');
-        }
-
-        if (!array_key_exists('accessToken', $response->json())) {
-            return null;
-        }
-
-        $accessToken = $response->json()['accessToken'];
-
-        Cache::put('pixxio-access', Crypt::encryptString($accessToken), 300);
-
-        return $accessToken;
     }
 
     private function streamContext()

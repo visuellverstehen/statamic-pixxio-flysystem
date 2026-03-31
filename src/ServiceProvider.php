@@ -96,13 +96,18 @@ class ServiceProvider extends AddonServiceProvider
     public function bootAddonMacros(): self
     {
         Http::macro('pixxio', function () {
-            $endpoint = config('filesystems.disks.pixxio.endpoint', '');
+            $url = config('filesystems.disks.pixxio.url', '');
+            $accessToken = config('filesystems.disks.pixxio.access_token');
 
             if (config('statamic.flysystem-pixxio.verify_ssl_certificate', true)) {
-                return Http::baseUrl($endpoint);
+                return Http::baseUrl($url);
             }
 
-            return Http::withoutVerifying()->baseUrl($endpoint);
+            return Http::withoutVerifying()
+                ->withHeaders([
+                    'Authorization' => "Bearer {$accessToken}",
+                ])
+                ->baseUrl($url);
         });
 
         return $this;
