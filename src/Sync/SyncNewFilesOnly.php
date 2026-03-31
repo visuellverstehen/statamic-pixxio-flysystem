@@ -3,14 +3,10 @@
 namespace VV\PixxioFlysystem\Sync;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Carbon;
 use VV\PixxioFlysystem\Client;
 use VV\PixxioFlysystem\Models\PixxioFile;
 use VV\PixxioFlysystem\Traits\PixxioFileHelper;
 
-/**
- * todo: sync new directories too.
- */
 class SyncNewFilesOnly
 {
     use PixxioFileHelper;
