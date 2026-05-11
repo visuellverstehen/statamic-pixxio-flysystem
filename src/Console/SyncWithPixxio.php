@@ -3,8 +3,8 @@
 namespace VV\PixxioFlysystem\Console;
 
 use Illuminate\Console\Command;
-use VV\PixxioFlysystem\Sync\SyncNewFilesOnly;
-use VV\PixxioFlysystem\Sync\SyncAllFilesAndDirectories;
+use VV\PixxioFlysystem\Sync\SyncAll;
+use VV\PixxioFlysystem\Sync\SyncNew;
 
 class SyncWithPixxio extends Command
 {
@@ -14,11 +14,11 @@ class SyncWithPixxio extends Command
     public function handle()
     {
         if ($this->option('new')) {
-            (new SyncNewFilesOnly($this))->handle();
+            (new SyncNew($this))->handle();
 
             return;
         }
 
-        (new SyncAllFilesAndDirectories($this))->handle();
+        (new SyncAll($this))->handle();
     }
 }

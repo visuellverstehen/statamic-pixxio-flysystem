@@ -4,7 +4,7 @@ namespace VV\PixxioFlysystem\Exceptions;
 
 use Exception;
 
-Class FileException extends Exception
+class FileException extends Exception
 {
     public static function notFound($path): static
     {

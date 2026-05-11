@@ -6,9 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
-use Statamic\Facades\AssetContainer;
-use Stringy\StaticStringy;
 
 class PixxioFile extends Model
 {
@@ -44,20 +41,7 @@ class PixxioFile extends Model
     protected static function booted(): void
     {
         static::created(function (PixxioFile $pixxioFile) {
-            if (!$container = AssetContainer::findByHandle('pixxio')) {
-                return;
-            }
-
-            $sanitizedPath = StaticStringy::removeLeft($pixxioFile->relative_path, '/');
-
-            try {
-                $asset = $container->makeAsset($sanitizedPath);
-                $asset->save();
-            } catch (\Exception $exception) {
-                Log::error('Asset could not be created from pixxio file: ' . $exception->getMessage(), [
-                    'pixxio_file' => $pixxioFile,
-                ]);
-            }
+            dispatch(new \VV\PixxioFlysystem\Jobs\CreateAssetFromPixxioFile($pixxioFile->relative_path));
         });
     }
 
@@ -76,7 +60,7 @@ class PixxioFile extends Model
     protected function lastModified(): Attribute
     {
         return Attribute::make(
-            get: fn(mixed $value, array $attributes) => is_null($attributes['last_modified']) ? null : Carbon::createFromTimeString($attributes['last_modified'])->timestamp,
+            get: fn (mixed $value, array $attributes) => is_null($attributes['last_modified']) ? null : Carbon::createFromTimeString($attributes['last_modified'])->timestamp,
         );
     }
 }

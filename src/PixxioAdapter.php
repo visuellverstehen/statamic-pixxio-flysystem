@@ -10,10 +10,13 @@ use League\Flysystem\Config;
 use League\Flysystem\DirectoryAttributes;
 use League\Flysystem\FileAttributes;
 use League\Flysystem\FilesystemAdapter;
+use League\Flysystem\UnableToCopyFile;
 use League\Flysystem\UnableToCreateDirectory;
 use League\Flysystem\UnableToDeleteDirectory;
 use League\Flysystem\UnableToDeleteFile;
+use League\Flysystem\UnableToMoveFile;
 use League\Flysystem\UnableToReadFile;
+use League\Flysystem\UnableToSetVisibility;
 use League\Flysystem\UnableToWriteFile;
 use Stringy\StaticStringy as Stringy;
 use VV\PixxioFlysystem\Models\PixxioDirectory;
@@ -44,6 +47,7 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function write(string $path, string $contents, Config $config): void
     {
+        ray('write: ' . $path)->green();
         $path = self::prefix($path);
 
         try {
@@ -55,11 +59,7 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function writeStream(string $path, $contents, Config $config): void
     {
-        try {
-            $this->client->upload($path, $contents);
-        } catch (Exception $exception) {
-            throw UnableToWriteFile::atLocation($path, $exception->getMessage(), $exception);
-        }
+        throw UnableToWriteFile::atLocation($path, 'Writing file is not supported.');
     }
 
     public function read(string $path): string
@@ -74,7 +74,7 @@ class PixxioAdapter implements FilesystemAdapter
             }
         }
 
-        if (!$file = PixxioFile::find($path)) {
+        if (! $file = PixxioFile::find($path)) {
             UnableToReadFile::fromLocation($path, "Could not find file '{$path}'");
         }
 
@@ -94,38 +94,24 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function delete(string $path): void
     {
-        $path = self::prefix($path);
-
-        try {
-            $this->client->deleteFile($path);
-        } catch (Exception $exception) {
-            throw UnableToDeleteFile::atLocation($path, $exception->getMessage());
-        }
+        // @todo delete only locally???
+        throw UnableToDeleteFile::atLocation($path, 'Delete file is not supported.');
     }
 
     public function deleteDirectory(string $path): void
     {
-        $path = self::prefix($path);
-
-        try {
-            $this->client->deleteDirectory($path);
-        } catch (Exception $exception) {
-            throw UnableToDeleteDirectory::atLocation($path, $exception->getMessage());
-        }
+        // @todo delete only locally???
+        throw UnableToDeleteDirectory::atLocation($path, 'Delete directory is not supported.');
     }
 
     public function createDirectory(string $path, Config $config): void
     {
-        try {
-            $this->client->createDirectory($path);
-        } catch (Exception $exception) {
-            throw UnableToCreateDirectory::atLocation($path, $exception->getMessage());
-        }
+        throw UnableToCreateDirectory::atLocation($path, 'Create directory is not supported.');
     }
 
     public function setVisibility(string $path, string $visibility): void
     {
-        // Not supported.
+        throw UnableToSetVisibility::atLocation($path, 'Set visibility is not supported.');
     }
 
     public function visibility(string $path): FileAttributes
@@ -171,12 +157,12 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function move(string $source, string $destination, Config $config): void
     {
-        // Not supported.
+        throw UnableToMoveFile::fromLocationTo($source, $destination);
     }
 
     public function copy(string $source, string $destination, Config $config): void
     {
-        // Not supported.
+        throw UnableToCopyFile::fromLocationTo($source, $destination);
     }
 
     public function getUrl(string $path): string
@@ -187,7 +173,7 @@ class PixxioAdapter implements FilesystemAdapter
             return $path;
         }
 
-        if (!$file =  PixxioFile::find($path)) {
+        if (! $file = PixxioFile::find($path)) {
             return $path;
         }
 
