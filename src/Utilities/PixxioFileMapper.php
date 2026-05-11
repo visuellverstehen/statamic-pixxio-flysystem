@@ -23,13 +23,13 @@ class PixxioFileMapper
 
     public function __construct(array $data)
     {
-        $this->id = (int)$data['id'];
+        $this->id = (int) $data['id'];
         $this->relativePath = self::getRelativePath($data);
-        $this->absolutePath = $data['imagePath'];
-        $this->filesize = (int)$data['fileSize'];
-        $this->width = (int)$data['imageWidth'];
-        $this->height = (int)$data['imageHeight'];
-        $this->alternativeText = YAML::dump($data['dynamicMetadata']['Alternativetext']) ?? null;
+        $this->absolutePath = $data['originalFileURL'];
+        $this->filesize = (int) $data['fileSize'];
+        $this->width = (int) $data['width'];
+        $this->height = (int) $data['height'];
+        $this->alternativeText = self::getAlternativeText($data);
         $this->copyright = self::getCopyrightText($data);
         $this->description = self::getDescription($data);
         $this->lastModified = $data['uploadDate'] ?? null;
@@ -53,14 +53,23 @@ class PixxioFileMapper
         ];
     }
 
-    protected function getCopyrightText(array $data): ?string
+    protected function getAlternativeText(array $data): ?string
     {
-        if (!$copyright = $data['dynamicMetadata']['CopyrightNotice'] ?? null) {
+        if (! $alternativeText = $this->getMetaData($data, 'Alternativetext')) {
             return null;
         }
 
-        if (!$photographer = $data['dynamicMetadata']['Fotograf'] ?? null) {
-            return  YAML::dump($copyright);
+        return YAML::dump($alternativeText);
+    }
+
+    protected function getCopyrightText(array $data): ?string
+    {
+        if (! $copyright = $this->getMetaData($data, 'CopyrightNotice')) {
+            return null;
+        }
+
+        if (! $photographer = $this->getMetaData($data, 'Fotograf')) {
+            return YAML::dump($copyright);
         }
 
         return YAML::dump("{$copyright}, {$photographer}");
@@ -68,10 +77,25 @@ class PixxioFileMapper
 
     protected function getDescription(array $data): ?string
     {
-        if (!$description = $data['description'] ?? null) {
+        if (! $description = $data['description'] ?? null) {
             return null;
         }
 
         return YAML::dump($description);
+    }
+
+    protected function getMetaData($data, $name): mixed
+    {
+        $metaData = ($data['importantMetadata'] ?? $data['metadataFields']) ?? [];
+
+        foreach ($metaData ?? [] as $meta) {
+            if (($meta['name'] ?? null) === $name) {
+                $value = $meta['value'] ?? null;
+
+                return is_array($value) ? null : $value;
+            }
+        }
+
+        return null;
     }
 }

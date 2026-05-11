@@ -2,6 +2,7 @@
 
 namespace VV\PixxioFlysystem\Actions;
 
+use Exception;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Statamic\Actions\Action;
@@ -12,6 +13,11 @@ use VV\PixxioFlysystem\Utilities\PixxioFileMapper;
 
 class SyncAssetWithPixxioAction extends Action
 {
+    public static function title()
+    {
+        return __('Synchronize with pixx.io');
+    }
+
     public function run($items, $values)
     {
         $failed = collect();
@@ -23,33 +29,27 @@ class SyncAssetWithPixxioAction extends Action
 
             try {
                 $client = new Client();
-                $incomingFileData = (new PixxioFileMapper($client->getFile($path)))->toArray();
+                $incomingFileData = (new PixxioFileMapper($client->getFile($file->pixxio_id)))->toArray();
 
                 $file->update($incomingFileData);
 
                 $succeeded->push($file);
 
                 Cache::forget($asset->metaCacheKey());
-            } catch (\Exception $exception) {
+            } catch (Exception $exception) {
                 $failed->push($file);
             }
-
         });
 
         if ($failed->isNotEmpty()) {
             $failed->count() > 1
-                ? throw new \Exception(__(':count files failed to synchronize.', ['count' => $failed->count()]))
-                : throw new \Exception(__(':filename failed to synchronize.', ['filename' => $failed->first()->filename]));
+                ? throw new Exception(__(':count files failed to synchronize.', ['count' => $failed->count()]))
+                : throw new Exception(__(':filename failed to synchronize.', ['filename' => $failed->first()->filename]));
         }
 
         return $succeeded->count() > 1
             ? __(':count files were synchronized.', ['count' => $succeeded->count()])
             : __(':filename has been synchronized.', ['filename' => $succeeded->first()->filename]);
-    }
-
-    public static function title()
-    {
-        return __('Synchronize with pixx.io');
     }
 
     public function visibleTo($item)
@@ -59,7 +59,7 @@ class SyncAssetWithPixxioAction extends Action
 
     private function usesPixxioDriver(): bool
     {
-        if (!array_key_exists('container', $this->context)) {
+        if (! array_key_exists('container', $this->context)) {
             return false;
         }
 

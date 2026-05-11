@@ -9,9 +9,10 @@ trait PixxioFileHelper
 {
     public function getRelativePath(array $fileData): string
     {
-        $directory = $fileData['category'] ?? '';
+        $directory = data_get($fileData, 'directory.path', '');
+        $fileName = data_get($fileData, 'fileName');
 
-        return "{$directory}/{$fileData['originalFilename']}";
+        return "{$directory}/{$fileName}";
     }
 
     public function createPixxioFile(array $fileData): PixxioFile

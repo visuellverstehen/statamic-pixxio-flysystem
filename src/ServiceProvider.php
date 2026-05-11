@@ -71,10 +71,11 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddonRoutes(): self
     {
-        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 
         return $this;
     }
+
     public function bootAddonCommands(): self
     {
         if ($this->app->runningInConsole()) {
@@ -88,7 +89,7 @@ class ServiceProvider extends AddonServiceProvider
 
     public function bootAddonTranslations(): self
     {
-        $this->loadJsonTranslationsFrom(__DIR__.'/../resources/lang');
+        $this->loadJsonTranslationsFrom(__DIR__ . '/../resources/lang');
 
         return $this;
     }
