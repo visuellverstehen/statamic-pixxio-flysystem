@@ -26,14 +26,13 @@ class SyncNew
     public function handle(): void
     {
         try {
-            $start = now();
             $files = $this->client->getNewFiles();
             
             $imported = collect();
 
             foreach (self::getAllNewFiles() as &$files) {
 
-                // Keep only files have not been saved to database yet.
+                // Keep only files that haven't been saved to database yet.
                 $filesToCreate = collect($files)
                     ->filter(function ($fileData) {
 
@@ -51,7 +50,6 @@ class SyncNew
                 });
             }
 
-            $time = $start->diffInSeconds(now());
             $this->command->info("Everything is up to date. {$imported->count()} new files have been found.");
         } catch (Exception $exception) {
             $this->command->error($exception->getMessage());
