@@ -19,6 +19,7 @@ use League\Flysystem\UnableToReadFile;
 use League\Flysystem\UnableToSetVisibility;
 use League\Flysystem\UnableToWriteFile;
 use Stringy\StaticStringy as Stringy;
+use VV\PixxioFlysystem\Assets\Asset;
 use VV\PixxioFlysystem\Models\PixxioDirectory;
 use VV\PixxioFlysystem\Models\PixxioFile;
 
@@ -47,7 +48,6 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function write(string $path, string $contents, Config $config): void
     {
-        ray('write: ' . $path)->green();
         $path = self::prefix($path);
 
         try {
@@ -94,13 +94,24 @@ class PixxioAdapter implements FilesystemAdapter
 
     public function delete(string $path): void
     {
-        // @todo delete only locally???
-        throw UnableToDeleteFile::atLocation($path, 'Delete file is not supported.');
+        $path = self::prefix($path);
+
+        if (Str::contains($path, '.yaml')) {
+            $asset = Asset::find($path);
+            $asset?->delete();
+
+            return;
+        } 
+
+        if (! $pixxioFile = PixxioFile::find($path)) {
+            throw UnableToDeleteFile::atLocation($path, 'File could not be found in database');
+        }
+
+        $pixxioFile->delete();
     }
 
     public function deleteDirectory(string $path): void
     {
-        // @todo delete only locally???
         throw UnableToDeleteDirectory::atLocation($path, 'Delete directory is not supported.');
     }
 
@@ -147,7 +158,6 @@ class PixxioAdapter implements FilesystemAdapter
                 continue;
             }
 
-            // If it's not a directory it is a file!
             yield new FileAttributes(
                 $content->relative_path,
                 $content->filesize,

@@ -4,7 +4,6 @@ namespace VV\PixxioFlysystem;
 
 use Exception;
 use Illuminate\Support\Facades\Http;
-use League\Flysystem\UnableToDeleteFile;
 use League\Flysystem\UnableToReadFile;
 use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Exceptions\FileException;
@@ -47,41 +46,8 @@ class Client
         return (bool) PixxioDirectory::find($path);
     }
 
-    public function deleteFile($path): void
+    public function read(string $path): string
     {
-        if (! $file = PixxioFile::find($path)) {
-            throw UnableToDeleteFile::atLocation($path, 'File could not be found in database');
-        }
-
-        $file->delete();
-    }
-
-    public function deleteDirectory($path): void
-    {
-        if (! $directory = PixxioDirectory::find($path)) {
-            throw new Exception("Could not find directory {$path}");
-        }
-
-        $options = json_encode([
-            'destinationCategory' => $path,
-        ]);
-
-        $urlEncodedOptions = urlencode($options);
-
-        $response = Http::pixxio()
-            ->delete("/categories/?options={$urlEncodedOptions}");
-
-        if ($response->json()['success'] !== 'true') {
-            throw new Exception($response->json()['message']);
-        }
-
-        $directory->delete();
-    }
-
-    public function read($path): string
-    {
-        ray('read: ' . $path);
-
         error_clear_last();
         $contents = @file_get_contents(
             $path,
@@ -98,8 +64,6 @@ class Client
 
     public function readStream(string $path)
     {
-        ray('readStream: ' . $path);
-
         if (! $file = PixxioFile::find($path)) {
             throw FileException::notFound($path);
         }
@@ -152,10 +116,6 @@ class Client
             return;
         }
 
-        if ($file->alternative_text !== $incomingMetaData['alt'] ?? '' || $file->copyright !== $incomingMetaData['copyright'] ?? '') {
-            self::updateMetaDataOnPixxio($file, $incomingMetaData);
-        }
-
         $file->update([
             'alternative_text' => $incomingMetaData['alt'] ?? null,
             'copyright' => $incomingMetaData['copyright'] ?? null,
@@ -191,7 +151,7 @@ class Client
             ->get('/files', $options);
 
         if ($response->json()['success'] !== true) {
-            throw new Exception("Error while trying to fetch new files from Pixx.io: {$response->body()}");
+            throw new Exception("Error while trying to fetch all files from Pixx.io: {$response->body()}");
         }
 
         $pageCursor = $response->json()['cursor'] ?? null;
@@ -203,10 +163,8 @@ class Client
         ];
     }
 
-    public function getFile($id): ?array
+    public function getFile(int $id): ?array
     {
-        ray($id)->green();
-
         $options = [
             'responseFields' => json_encode(self::RESPONSE_FIELDS),
         ];
@@ -218,8 +176,6 @@ class Client
             return null;
         }
 
-        ray($response->json()['file'])->green();
-        
         return $response->json()['file'];
     }
 
@@ -265,24 +221,6 @@ class Client
             'pageCursor' => $pageCursor,
             'has_more' => ! is_null($pageCursor),
         ];
-    }
-
-    private function updateMetaDataOnPixxio(PixxioFile $file, array $data): void
-    {
-        $response = Http::pixxio()
-            ->asForm()
-            ->put("/files/{$file->pixxio_id}", [
-                'options' => json_encode([
-                    'dynamicMetadata' => [
-                        'Alternativetext' => $data['alt'] ?? '',
-                        'CopyrightNotice' => $data['copyright'] ?? '',
-                    ],
-                ]),
-            ]);
-
-        if ($response->json()['success'] !== 'true') {
-            throw new Exception($response->json()['message']);
-        }
     }
 
     private function streamContext()

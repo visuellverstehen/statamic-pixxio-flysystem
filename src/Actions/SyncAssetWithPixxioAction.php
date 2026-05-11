@@ -20,7 +20,6 @@ class SyncAssetWithPixxioAction extends Action
 
     public function run($items, $values)
     {
-        dd($items, $values);
         $failed = collect();
         $succeeded = collect();
 
