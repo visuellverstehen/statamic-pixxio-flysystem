@@ -15,6 +15,11 @@ trait PixxioFileHelper
         return "{$directory}/{$fileName}";
     }
 
+    public function getPixxioId(array $fileData): ?int
+    {
+        return data_get($fileData, 'id');
+    }
+
     public function createPixxioFile(array $fileData): PixxioFile
     {
         $preparedData = (new PixxioFileMapper($fileData))->toArray();
