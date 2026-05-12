@@ -194,7 +194,7 @@ class Client
                     'filters' => [
                         [
                             'filterType' => 'uploadDate',
-                            'dateMin' => today()->subWeeks(2)->format('Y-m-d H:i:s'),
+                            'dateMin' => today()->format('Y-m-d H:i:s'),
                         ],
                         [
                             'filterType' => 'formatType',
