@@ -18,12 +18,15 @@ class SyncAll
     protected Client $client;
     protected array $config;
     protected Command $command;
+    protected array $exstingFiles = [];
 
     public function __construct($command)
     {
         $this->command = $command;
         $this->client = new Client();
         $this->config = config('statamic.flysystem-pixxio');
+
+        $this->exstingFiles = PixxioFile::pluck('relative_path', 'pixxio_id')->all();
     }
 
     public function handle(): void
@@ -51,15 +54,18 @@ class SyncAll
 
             foreach ($files as $file) {
                 $relativePath = self::getRelativePath($file);
+                $pixxioId = self::getPixxioId($file);
 
-                if (self::shouldBeExcluded($relativePath)) {
+                if (self::shouldBeExcluded($relativePath, $pixxioId)) {
                     $progressBar->advance();
 
                     continue;
                 }
-
+                
                 $incomingFileData = (new PixxioFileMapper($file))->toArray();
                 $fileRows[] = $incomingFileData;
+                
+                $this->existingFiles[$pixxioId] = $relativePath;
 
                 foreach ($this->directoriesForPath($incomingFileData['relative_path']) as $dirPath) {
                     if (isset($seenDirectories[$dirPath])) {
@@ -133,7 +139,10 @@ class SyncAll
 
         PixxioFile::upsert(
             $rows,
-            ['relative_path'],
+            [
+                'pixxio_id',
+                'relative_path'
+            ],
             [
                 'pixxio_id',
                 'absolute_path',
@@ -192,7 +201,7 @@ class SyncAll
         }
     }
 
-    private function shouldBeExcluded(string $path): bool
+    private function shouldBeExcluded(string $path, $id = null): bool
     {
         if (Str::endsWith($path, '/.meta')) {
             return true;
@@ -204,6 +213,21 @@ class SyncAll
             }
         }
 
+        if (! is_null($id) && $this->hasConflict($path, $id)) {
+            return true;
+        }
+
         return false;
+    }
+
+    // Check if relative_path exists with different pixxio_id OR pixxio_id exists with different relative_path.
+    // If that is the case we have a conflict and want to exclude the file.
+    private function hasConflict($path, $id): bool
+    {
+        return collect($this->exstingFiles)
+            ->contains(function($existingPath, $existingId) use ($path, $id) {
+                return ($existingPath === $path && $existingId != $id) ||
+                    ($existingId == $id && $existingPath !== $path);
+        });
     }
 }
