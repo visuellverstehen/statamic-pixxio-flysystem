@@ -86,7 +86,7 @@ class PixxioFileMapper
 
     protected function getMetaData($data, $name): mixed
     {
-        $metaData = ($data['importantMetadata'] ?? $data['metadataFields']) ?? [];
+        $metaData = $data['metadataFields'] ?? [];
 
         foreach ($metaData ?? [] as $meta) {
             if (($meta['name'] ?? null) === $name) {

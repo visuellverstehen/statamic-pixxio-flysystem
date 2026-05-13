@@ -112,7 +112,7 @@ class Client
         $incomingMetaData = Yaml::parse($data)['data'] ?? [];
         $currentMetaData = Yaml::parse(self::getMetaData($path))['data'];
 
-        if ($incomingMetaData === $currentMetaData) {
+        if ($incomingMetaData === $currentMetaData || empty($incomingMetaData)) {
             return;
         }
 
