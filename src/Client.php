@@ -166,6 +166,9 @@ class Client
     public function getFile(int $id): ?array
     {
         $options = [
+            'directoryResponseFields' => json_encode([
+                'path',
+            ]),
             'responseFields' => json_encode(self::RESPONSE_FIELDS),
         ];
 
@@ -189,6 +192,9 @@ class Client
             'pageSize' => 500,
             'approximateQuantity' => true,
             'showFiles' => true,
+            'directoryResponseFields' => json_encode([
+                'path',
+            ]),
             'filter' => json_encode([
                     'filterType' => 'connectorAnd',
                     'filters' => [
