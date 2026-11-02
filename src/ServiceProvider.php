@@ -13,16 +13,25 @@ use VV\PixxioFlysystem\Console\SyncWithPixxio;
 
 class ServiceProvider extends AddonServiceProvider
 {
+    protected $actions = [
+        SyncAssetWithPixxioAction::class,
+    ];
+
+    protected $commands = [
+        SyncWithPixxio::class,
+    ];
+
+    protected $routes = [
+        'web' => __DIR__ . '/../routes/web.php',
+    ];
+
     public function boot()
     {
         parent::boot();
 
         $this
-            ->bootAddonActions()
             ->bootAddonConfig()
-            ->bootAddonCommands()
             ->bootAddonMigrations()
-            ->bootAddonRoutes()
             ->bootAddonTranslations()
             ->bootAddonMacros()
             ->bootAddonPixxioDriver()
@@ -36,13 +45,6 @@ class ServiceProvider extends AddonServiceProvider
         $this->publishes([
             __DIR__ . '/../config/config.php' => config_path('statamic/flysystem-pixxio.php'),
         ], 'flysystem-pixxio-config');
-
-        return $this;
-    }
-
-    public function bootAddonActions(): self
-    {
-        SyncAssetWithPixxioAction::register();
 
         return $this;
     }
@@ -65,24 +67,6 @@ class ServiceProvider extends AddonServiceProvider
     public function bootAddonMigrations(): self
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-
-        return $this;
-    }
-
-    public function bootAddonRoutes(): self
-    {
-        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-
-        return $this;
-    }
-
-    public function bootAddonCommands(): self
-    {
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                SyncWithPixxio::class,
-            ]);
-        }
 
         return $this;
     }
