@@ -139,10 +139,7 @@ class SyncAll
 
         PixxioFile::upsert(
             $rows,
-            [
-                'pixxio_id',
-                'relative_path'
-            ],
+            ['relative_path'],
             [
                 'pixxio_id',
                 'absolute_path',
