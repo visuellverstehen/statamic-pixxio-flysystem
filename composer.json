@@ -3,6 +3,7 @@
     "description": "A Flysystem Adapter for the Pixxio API",
     "keywords": [ "statamic", "addon", "flysystem", "filesystem", "pixxio", "assets", "asset-container" ],
     "type": "statamic-addon",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "VV\\PixxioFlysystem\\": "src"
