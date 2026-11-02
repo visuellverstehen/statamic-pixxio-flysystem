@@ -58,6 +58,10 @@ php artisan pixxio:sync --new
 
 In order to keep the database updated schedule a task that runs synchronization script regularly.
 
+### Upgrading
+
+After updating the package, run `php artisan pixxio:sync` once to normalize stored metadata.
+
 ---
 ## Configurations
 
