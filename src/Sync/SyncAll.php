@@ -35,7 +35,7 @@ class SyncAll
 
         self::sync();
 
-        $time = $start->diffInSeconds(now());
+        $time = (int) $start->diffInSeconds(now());
         $this->command->info("Success! Files and directories have been synced in {$time} seconds.");
     }
 
