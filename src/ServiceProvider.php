@@ -2,6 +2,7 @@
 
 namespace VV\PixxioFlysystem;
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Http;
@@ -36,6 +37,17 @@ class ServiceProvider extends AddonServiceProvider
             ->bootAddonMacros()
             ->bootAddonPixxioDriver()
             ->overrideAssetClass();
+    }
+
+    protected function schedule(Schedule $schedule)
+    {
+        if ($cron = config('statamic.flysystem-pixxio.schedule.sync')) {
+            $schedule->command('pixxio:sync')->cron($cron)->withoutOverlapping();
+        }
+
+        if ($cron = config('statamic.flysystem-pixxio.schedule.sync_new')) {
+            $schedule->command('pixxio:sync --new')->cron($cron)->withoutOverlapping();
+        }
     }
 
     public function bootAddonConfig(): self

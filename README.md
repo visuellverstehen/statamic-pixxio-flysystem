@@ -56,7 +56,14 @@ If you wish to only import newly added files you can use the `--new` option.
 php artisan pixxio:sync --new
 ```
 
-In order to keep the database updated schedule a task that runs synchronization script regularly.
+In order to keep the database updated, enable the scheduled syncs in the config (requires Laravel's scheduler to run):
+
+``` php
+'schedule' => [
+    'sync' => '0 3 * * *',
+    'sync_new' => '*/15 * * * *',
+],
+```
 
 ### Upgrading
 
