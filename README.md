@@ -75,6 +75,12 @@ Exclude certain directories in config/flysystem-pixxio.php
     ],
 ```
 
+SSL certificates of the Pixxio API are verified by default. Disable it only if necessary:
+
+``` php
+'verify_ssl_certificate' => false,
+```
+
 ---
 ## How to Use
 
