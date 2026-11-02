@@ -8,6 +8,12 @@ return [
         ],
     ],
 
-    'verify_ssl_certificate' => false,
+    'verify_ssl_certificate' => true,
+
+    // Cron expressions for the sync commands, e.g. '0 3 * * *'. Null disables scheduling.
+    'schedule' => [
+        'sync' => null,
+        'sync_new' => null,
+    ],
 
 ];

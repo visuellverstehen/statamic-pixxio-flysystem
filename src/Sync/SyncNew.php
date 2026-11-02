@@ -26,28 +26,28 @@ class SyncNew
     public function handle(): void
     {
         try {
-            $files = $this->client->getNewFiles();
-            
             $imported = collect();
 
             foreach (self::getAllNewFiles() as &$files) {
+                $existing = PixxioFile::query()
+                    ->whereIn('relative_path', array_map(fn ($fileData) => self::getRelativePath($fileData), $files))
+                    ->orWhereIn('pixxio_id', array_column($files, 'id'))
+                    ->get(['relative_path', 'pixxio_id']);
 
-                // Keep only files that haven't been saved to database yet.
-                $filesToCreate = collect($files)
-                    ->filter(function ($fileData) {
+                $existingPaths = $existing->pluck('relative_path')->flip()->all();
+                $existingIds = $existing->pluck('pixxio_id')->flip()->all();
 
-                        return ! PixxioFile::where('relative_path', self::getRelativePath($fileData))
-                            ->orWhere('pixxio_id', $fileData['id'])
-                            ->first();
-                    });
+                foreach ($files as $fileData) {
+                    $path = self::getRelativePath($fileData);
 
-                // Save files to database.
-                $filesToCreate->each(function ($fileData) use ($imported) {
-                    if ($file = self::createPixxioFile($fileData)) {
-
-                        $imported->push($file);
+                    if (isset($existingPaths[$path]) || isset($existingIds[$fileData['id']])) {
+                        continue;
                     }
-                });
+
+                    $imported->push(self::createPixxioFile($fileData));
+                    $existingPaths[$path] = true;
+                    $existingIds[$fileData['id']] = true;
+                }
             }
 
             $this->command->info("Everything is up to date. {$imported->count()} new files have been found.");

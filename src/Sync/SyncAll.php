@@ -18,7 +18,8 @@ class SyncAll
     protected Client $client;
     protected array $config;
     protected Command $command;
-    protected array $exstingFiles = [];
+    protected array $pathsById = [];
+    protected array $idsByPath = [];
 
     public function __construct($command)
     {
@@ -26,7 +27,8 @@ class SyncAll
         $this->client = new Client();
         $this->config = config('statamic.flysystem-pixxio');
 
-        $this->exstingFiles = PixxioFile::pluck('relative_path', 'pixxio_id')->all();
+        $this->pathsById = PixxioFile::pluck('relative_path', 'pixxio_id')->all();
+        $this->idsByPath = array_flip($this->pathsById);
     }
 
     public function handle(): void
@@ -35,7 +37,7 @@ class SyncAll
 
         self::sync();
 
-        $time = $start->diffInSeconds(now());
+        $time = (int) $start->diffInSeconds(now());
         $this->command->info("Success! Files and directories have been synced in {$time} seconds.");
     }
 
@@ -65,7 +67,8 @@ class SyncAll
                 $incomingFileData = (new PixxioFileMapper($file))->toArray();
                 $fileRows[] = $incomingFileData;
                 
-                $this->existingFiles[$pixxioId] = $relativePath;
+                $this->pathsById[$pixxioId] = $relativePath;
+                $this->idsByPath[$relativePath] = $pixxioId;
 
                 foreach ($this->directoriesForPath($incomingFileData['relative_path']) as $dirPath) {
                     if (isset($seenDirectories[$dirPath])) {
@@ -139,10 +142,7 @@ class SyncAll
 
         PixxioFile::upsert(
             $rows,
-            [
-                'pixxio_id',
-                'relative_path'
-            ],
+            ['relative_path'],
             [
                 'pixxio_id',
                 'absolute_path',
@@ -224,10 +224,7 @@ class SyncAll
     // If that is the case we have a conflict and want to exclude the file.
     private function hasConflict($path, $id): bool
     {
-        return collect($this->exstingFiles)
-            ->contains(function($existingPath, $existingId) use ($path, $id) {
-                return ($existingPath === $path && $existingId != $id) ||
-                    ($existingId == $id && $existingPath !== $path);
-        });
+        return (isset($this->idsByPath[$path]) && $this->idsByPath[$path] != $id)
+            || (isset($this->pathsById[$id]) && $this->pathsById[$id] !== $path);
     }
 }

@@ -1,6 +1,6 @@
 # Statamic Pixxio Flysystem
 
-![Statamic 3.4+](https://img.shields.io/badge/Statamic-4.0+-FF269E?style=for-the-badge&link=https://statamic.com)
+![Statamic 3.4+](https://img.shields.io/badge/Statamic-3.4+-FF269E?style=for-the-badge&link=https://statamic.com)
 
 > Statamic Pixxio Flysystem is a Statamic addon that does something pretty neat.
 
@@ -9,12 +9,6 @@
 - Exclude specific directories from the asset-container.
 
 ---
-## Licensing
-
-Pixxio Flysystem is a commercial addon - you **must purchase a license** via the [Statamic Marketplace](https://statamic.com/addons/visuellverstehen/pixxio-flysystem) to use it in a production environment.
-
----
-
 ## How to Install
 
 ### Run the following command from your project root:
@@ -56,7 +50,18 @@ If you wish to only import newly added files you can use the `--new` option.
 php artisan pixxio:sync --new
 ```
 
-In order to keep the database updated schedule a task that runs synchronization script regularly.
+In order to keep the database updated, enable the scheduled syncs in the config (requires Laravel's scheduler to run):
+
+``` php
+'schedule' => [
+    'sync' => '0 3 * * *',
+    'sync_new' => '*/15 * * * *',
+],
+```
+
+### Upgrading
+
+After updating the package, run `php artisan pixxio:sync` once to normalize stored metadata.
 
 ---
 ## Configurations
@@ -73,6 +78,12 @@ Exclude certain directories in config/flysystem-pixxio.php
             '/home',
         ],
     ],
+```
+
+SSL certificates of the Pixxio API are verified by default. Disable it only if necessary:
+
+``` php
+'verify_ssl_certificate' => false,
 ```
 
 ---

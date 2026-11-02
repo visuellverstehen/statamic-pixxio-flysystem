@@ -3,7 +3,6 @@
 namespace VV\PixxioFlysystem\Utilities;
 
 use GuzzleHttp\Psr7\MimeType;
-use Statamic\Facades\YAML;
 use VV\PixxioFlysystem\Traits\PixxioFileHelper;
 
 class PixxioFileMapper
@@ -55,11 +54,7 @@ class PixxioFileMapper
 
     protected function getAlternativeText(array $data): ?string
     {
-        if (! $alternativeText = $this->getMetaData($data, 'Alternativetext')) {
-            return null;
-        }
-
-        return YAML::dump($alternativeText);
+        return $this->getMetaData($data, 'Alternativetext') ?: null;
     }
 
     protected function getCopyrightText(array $data): ?string
@@ -69,19 +64,15 @@ class PixxioFileMapper
         }
 
         if (! $photographer = $this->getMetaData($data, 'Fotograf')) {
-            return YAML::dump($copyright);
+            return $copyright;
         }
 
-        return YAML::dump("{$copyright}, {$photographer}");
+        return "{$copyright}, {$photographer}";
     }
 
     protected function getDescription(array $data): ?string
     {
-        if (! $description = $data['description'] ?? null) {
-            return null;
-        }
-
-        return YAML::dump($description);
+        return ($data['description'] ?? null) ?: null;
     }
 
     protected function getMetaData($data, $name): mixed

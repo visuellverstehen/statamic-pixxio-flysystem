@@ -75,7 +75,7 @@ class PixxioAdapter implements FilesystemAdapter
         }
 
         if (! $file = PixxioFile::find($path)) {
-            UnableToReadFile::fromLocation($path, "Could not find file '{$path}'");
+            throw UnableToReadFile::fromLocation($path, "Could not find file '{$path}'");
         }
 
         return $this->client->read($file->absolute_path);
