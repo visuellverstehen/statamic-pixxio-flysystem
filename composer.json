@@ -8,6 +8,11 @@
             "VV\\PixxioFlysystem\\": "src"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "VV\\PixxioFlysystem\\Tests\\": "tests"
+        }
+    },
     "authors": [
         {
             "name": "visuellverstehen"
@@ -32,7 +37,12 @@
     },
     "config": {
         "allow-plugins": {
-            "pixelfear/composer-dist-plugin": true
+            "pixelfear/composer-dist-plugin": true,
+            "pestphp/pest-plugin": true
         }
+    },
+    "require-dev": {
+        "pestphp/pest": "^5.3",
+        "orchestra/testbench": "^11.3"
     }
 }
