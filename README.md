@@ -9,12 +9,6 @@
 - Exclude specific directories from the asset-container.
 
 ---
-## Licensing
-
-Pixxio Flysystem is a commercial addon - you **must purchase a license** via the [Statamic Marketplace](https://statamic.com/addons/visuellverstehen/pixxio-flysystem) to use it in a production environment.
-
----
-
 ## How to Install
 
 ### Run the following command from your project root:
